@@ -21,8 +21,8 @@ def index():
 
 @app.route("/api/teste")
 def teste_conexao():
-    response = supabase.table("exemplo").select("*").execute()
-    return jsonify(response.data)
+    resposta = supabase.table("dicas").select("*").execute()
+    return jsonify(resposta.data)
 
 
 if __name__ == "__main__":
