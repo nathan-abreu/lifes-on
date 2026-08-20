@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Lifes On - Cadastro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Criar conta</h1>
+
+    {% with mensagens = get_flashed_messages() %}
+      {% if mensagens %}
+        <ul>{% for m in mensagens %}<li>{{ m }}</li>{% endfor %}</ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>Nome</label>
+        <input type="text" name="nome" required>
+
+        <label>E-mail</label>
+        <input type="email" name="email" required>
+
+        <label>Senha</label>
+        <input type="password" name="senha" required minlength="6">
+
+        <button type="submit">Cadastrar</button>
+    </form>
+
+    <p>Já tem conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+</body>
+</html>
