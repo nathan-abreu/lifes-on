@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifes On - Dashboard</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app" id="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <span class="raio"><i class="fa-solid fa-bolt"></i></span>
+            Lifes On
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="{{ url_for('dashboard') }}" class="ativo"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            <a href="#"><i class="fa-solid fa-circle-plus"></i> Registrar Atividade</a>
+            <a href="#"><i class="fa-solid fa-bullseye"></i> Metas</a>
+            <a href="#"><i class="fa-solid fa-chart-line"></i> Progresso</a>
+            <a href="#"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
+            <a href="#"><i class="fa-solid fa-lightbulb"></i> Dicas</a>
+            <a href="#"><i class="fa-solid fa-bell"></i> Alertas</a>
+            <a href="#"><i class="fa-solid fa-star"></i> Pontuação</a>
+            <a href="#"><i class="fa-solid fa-trophy"></i> Conquistas</a>
+            <a href="#"><i class="fa-solid fa-gear"></i> Configurações</a>
+        </nav>
+
+        <div class="sidebar__rodape">
+            <span class="avatar">{{ nome[0]|upper }}</span>
+            <div class="sidebar__usuario">
+                <strong>{{ nome }}</strong>
+                <span>1.240 pts · Nível 4</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="sidebar__sair" title="Sair" aria-label="Sair">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <div class="sombra-menu" id="sombraMenu"></div>
+
+    <!-- ================= CONTEUDO ================= -->
+    <main class="conteudo">
+
+        <header class="topo">
+            <button type="button" class="menu-botao" id="menuBotao" aria-label="Abrir menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <p class="topo__data" id="dataHoje"></p>
+
+            <div class="topo__acoes">
+                <span class="sino"><i class="fa-solid fa-bell"></i></span>
+                <span class="avatar">{{ nome[0]|upper }}</span>
+            </div>
+        </header>
+
+        <section class="saudacao">
+            <h1>Olá, {{ nome }}!</h1>
+            <p>Hoje é um ótimo dia para treinar.</p>
+        </section>
+
+        <!-- Quatro metricas -->
+        <section class="metricas-grid">
+            <article class="cartao">
+                <div class="metrica__icone"><i class="fa-solid fa-clock"></i></div>
+                <div class="metrica__valor">295 <small>min</small></div>
+                <p class="metrica__legenda">Minutos treinados essa semana</p>
+            </article>
+
+            <article class="cartao">
+                <div class="metrica__icone"><i class="fa-solid fa-dumbbell"></i></div>
+                <div class="metrica__valor">5</div>
+                <p class="metrica__legenda">Treinos concluídos</p>
+            </article>
+
+            <article class="cartao">
+                <div class="metrica__icone"><i class="fa-solid fa-star"></i></div>
+                <div class="metrica__valor">1.240 <small>pts</small></div>
+                <p class="metrica__legenda">Pontuação total</p>
+            </article>
+
+            <article class="cartao">
+                <div class="metrica__icone"><i class="fa-solid fa-fire"></i></div>
+                <div class="metrica__valor">7 <small>dias</small></div>
+                <p class="metrica__legenda">Sequência ativa</p>
+            </article>
+        </section>
+
+        <!-- Grafico + mini cards -->
+        <section class="painel-duplo">
+            <article class="cartao grafico">
+                <div class="grafico__cabecalho">
+                    <h2>Evolução Semanal</h2>
+                    <span>Minutos por dia</span>
+                </div>
+
+                <svg viewBox="0 0 700 250" role="img"
+                     aria-label="Gráfico de linha com os minutos treinados de segunda a domingo">
+                    <defs>
+                        <linearGradient id="areaVerde" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#22c55e" stop-opacity="0.28"></stop>
+                            <stop offset="100%" stop-color="#22c55e" stop-opacity="0"></stop>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- linhas de grade e escala -->
+                    <g stroke="#e4e7ec" stroke-width="1">
+                        <line x1="50" y1="30" x2="680" y2="30"></line>
+                        <line x1="50" y1="75" x2="680" y2="75"></line>
+                        <line x1="50" y1="120" x2="680" y2="120"></line>
+                        <line x1="50" y1="165" x2="680" y2="165"></line>
+                        <line x1="50" y1="210" x2="680" y2="210"></line>
+                    </g>
+                    <g fill="#667085" font-size="12" text-anchor="end">
+                        <text x="38" y="34">80</text>
+                        <text x="38" y="79">60</text>
+                        <text x="38" y="124">40</text>
+                        <text x="38" y="169">20</text>
+                        <text x="38" y="214">0</text>
+                    </g>
+
+                    <!-- area + linha -->
+                    <path fill="url(#areaVerde)"
+                          d="M50,142.5 L153,108.75 L257,153.75 L360,75 L463,120 L567,41.25 L670,165 L670,210 L50,210 Z"></path>
+                    <polyline fill="none" stroke="#22c55e" stroke-width="3"
+                              stroke-linecap="round" stroke-linejoin="round"
+                              points="50,142.5 153,108.75 257,153.75 360,75 463,120 567,41.25 670,165"></polyline>
+
+                    <!-- pontos -->
+                    <g fill="#ffffff" stroke="#22c55e" stroke-width="3">
+                        <circle cx="50" cy="142.5" r="5"></circle>
+                        <circle cx="153" cy="108.75" r="5"></circle>
+                        <circle cx="257" cy="153.75" r="5"></circle>
+                        <circle cx="360" cy="75" r="5"></circle>
+                        <circle cx="463" cy="120" r="5"></circle>
+                        <circle cx="567" cy="41.25" r="5"></circle>
+                        <circle cx="670" cy="165" r="5"></circle>
+                    </g>
+
+                    <!-- dias da semana -->
+                    <g fill="#667085" font-size="12" text-anchor="middle">
+                        <text x="50" y="235">Seg</text>
+                        <text x="153" y="235">Ter</text>
+                        <text x="257" y="235">Qua</text>
+                        <text x="360" y="235">Qui</text>
+                        <text x="463" y="235">Sex</text>
+                        <text x="567" y="235">Sáb</text>
+                        <text x="670" y="235">Dom</text>
+                    </g>
+                </svg>
+            </article>
+
+            <div class="mini-cards">
+                <article class="cartao">
+                    <p class="mini__rotulo">Próximo treino</p>
+                    <p class="mini__valor">Treino de pernas</p>
+                    <p class="mini__apoio">Hoje, às 18h30 · 45 min</p>
+                </article>
+
+                <article class="cartao">
+                    <p class="mini__rotulo">Meta atual</p>
+                    <p class="mini__valor">300 min na semana</p>
+                    <p class="mini__apoio">295 de 300 min · 98%</p>
+                    <div class="barra"><div style="width: 98%"></div></div>
+                </article>
+
+                <article class="cartao">
+                    <p class="mini__rotulo">Nível 4</p>
+                    <p class="mini__valor">1.240 XP</p>
+                    <p class="mini__apoio">260 XP para o nível 5</p>
+                    <div class="barra"><div style="width: 62%"></div></div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Ultimas atividades -->
+        <section class="cartao atividades">
+            <div class="atividades__cabecalho">
+                <h2>Últimas Atividades</h2>
+                <a href="#">Ver tudo</a>
+            </div>
+
+            <div class="atividade">
+                <span class="atividade__icone"><i class="fa-solid fa-person-running"></i></span>
+                <div class="atividade__info">
+                    <strong>Corrida ao ar livre</strong>
+                    <span>Ontem · 40 min</span>
+                </div>
+                <span class="atividade__xp">+80 XP</span>
+            </div>
+
+            <div class="atividade">
+                <span class="atividade__icone"><i class="fa-solid fa-dumbbell"></i></span>
+                <div class="atividade__info">
+                    <strong>Treino de força</strong>
+                    <span>Sábado · 75 min</span>
+                </div>
+                <span class="atividade__xp">+150 XP</span>
+            </div>
+
+            <div class="atividade">
+                <span class="atividade__icone"><i class="fa-solid fa-person-swimming"></i></span>
+                <div class="atividade__info">
+                    <strong>Natação</strong>
+                    <span>Sexta · 40 min</span>
+                </div>
+                <span class="atividade__xp">+90 XP</span>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<script>
+    // Data de hoje por extenso, em portugues.
+    document.getElementById('dataHoje').textContent =
+        new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+    // Sidebar deslizante no mobile.
+    var app = document.getElementById('app');
+    document.getElementById('menuBotao').addEventListener('click', function () {
+        app.classList.toggle('menu-aberto');
+    });
+    document.getElementById('sombraMenu').addEventListener('click', function () {
+        app.classList.remove('menu-aberto');
+    });
+</script>
+</body>
+</html>

@@ -109,7 +109,7 @@ def logout():
 @app.route("/dashboard")
 @login_obrigatorio
 def dashboard():
-    return f"Bem-vindo, {session['nome']}!"
+    return render_template("dashboard.html", nome=session["nome"])
 
 
 if __name__ == "__main__":

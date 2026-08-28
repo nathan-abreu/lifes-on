@@ -1,4 +1,1024 @@
+/* ==========================================================================
+   Lifes On - folha de estilo unica (telas de autenticacao + dashboard)
+   Paleta: navy/verde escuro no fundo, branco/cinza claro nos cards,
+   verde vibrante como destaque.
+   ========================================================================== */
+
+:root {
+    --navy-900: #071b2e;
+    --navy-800: #0b2740;
+    --navy-700: #123152;
+    --verde-900: #0d3b2e;
+    --verde: #22c55e;
+    --verde-forte: #16a34a;
+    --verde-suave: rgba(34, 197, 94, 0.12);
+
+    --fundo: #f3f5f8;
+    --cartao: #ffffff;
+    --borda: #e4e7ec;
+
+    --texto: #101828;
+    --texto-suave: #667085;
+    --texto-claro: rgba(255, 255, 255, 0.72);
+
+    --sombra: 0 24px 60px rgba(7, 27, 46, 0.18);
+    --sombra-cartao: 0 2px 8px rgba(16, 24, 40, 0.06);
+    --raio: 18px;
+
+    --sidebar: 260px;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: sans-serif;
-    margin: 2rem;
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--texto);
+    background: var(--fundo);
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: var(--verde-forte);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+a:hover {
+    color: var(--verde);
+}
+
+/* --------------------------------------------------------------------------
+   Marca (icone de raio + nome) - usada nas duas telas
+   -------------------------------------------------------------------------- */
+
+.raio {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: var(--verde);
+    color: #06251a;
+    font-size: 1.5rem;
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   Hover sutil nos icones (mesmo estilo em auth, dashboard e landing)
+   -------------------------------------------------------------------------- */
+
+.raio,
+.sidebar__nav a .fa-solid,
+.campo__caixa > .fa-solid:first-child,
+.olho,
+.metrica__icone {
+    transition: transform 0.25s ease, filter 0.25s ease;
+}
+
+.raio:hover,
+.metrica__icone:hover,
+.campo__caixa:hover > .fa-solid:first-child,
+.olho:hover,
+.sidebar__nav a:hover .fa-solid {
+    transform: scale(1.12);
+    filter: brightness(1.15);
+}
+
+/* ==========================================================================
+   TELA 1 - Cadastro e login (duas colunas)
+   ========================================================================== */
+
+.auth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #0a2340 0%, #0b2e3a 55%, var(--verde-900) 100%);
+}
+
+/* Coluna esquerda -------------------------------------------------------- */
+
+.auth__marca {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 3rem;
+    padding: 3.5rem clamp(2rem, 5vw, 4.5rem);
+    color: #fff;
+}
+
+.marca__nome {
+    margin: 1.75rem 0 0;
+    font-size: clamp(2.5rem, 5vw, 3.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.marca__slogan {
+    margin: 0.5rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--verde);
+}
+
+.marca__texto {
+    margin: 1.25rem 0 0;
+    max-width: 34ch;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--texto-claro);
+}
+
+.metricas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 0;
+    padding: 1.75rem 0 0;
+    list-style: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.metricas strong {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--verde);
+}
+
+.metricas span {
+    font-size: 0.85rem;
+    color: var(--texto-claro);
+}
+
+/* Coluna direita --------------------------------------------------------- */
+
+.auth__painel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem clamp(1.25rem, 4vw, 3.5rem);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.cartao-auth {
+    width: 100%;
+    max-width: 420px;
+    padding: 2.75rem 2.25rem;
+    background: var(--cartao);
+    border-radius: 24px;
+    box-shadow: var(--sombra);
+}
+
+.cartao-auth h2 {
+    margin: 0;
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.cartao-auth__sub {
+    margin: 0.4rem 0 2rem;
+    color: var(--texto-suave);
+    font-size: 0.95rem;
+}
+
+/* Formularios ------------------------------------------------------------ */
+
+.campo {
+    margin-bottom: 1.15rem;
+}
+
+.campo label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--texto);
+}
+
+.campo__caixa {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.campo__caixa > .fa-solid:first-child {
+    position: absolute;
+    left: 14px;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+    pointer-events: none;
+}
+
+.campo input {
+    width: 100%;
+    padding: 0.8rem 2.75rem;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--texto);
+    background: #fbfcfd;
+    border: 1.5px solid var(--borda);
+    border-radius: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.campo input::placeholder {
+    color: #9aa4b2;
+}
+
+.campo input:focus {
+    outline: none;
+    background: #fff;
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px var(--verde-suave);
+}
+
+.olho {
+    position: absolute;
+    right: 12px;
+    padding: 4px;
+    color: var(--texto-suave);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: color 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+}
+
+.olho:hover {
+    color: var(--verde-forte);
+    transform: scale(1.12);
+    filter: brightness(1.15);
+}
+
+.campo__ajuda {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+}
+
+.esqueci {
+    margin: -0.35rem 0 1.5rem;
+    text-align: right;
+    font-size: 0.85rem;
+}
+
+.botao-verde {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--verde);
+    border: 0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.botao-verde:hover {
+    background: var(--verde-forte);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.32);
+}
+
+.rodape-auth {
+    margin: 1.5rem 0 0;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+}
+
+/* Mensagens flash -------------------------------------------------------- */
+
+.aviso {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    border-radius: 12px;
+    background: #eef6ff;
+    color: #1b4b7d;
+    border: 1px solid #d5e6f7;
+}
+
+.aviso .fa-solid {
+    color: var(--verde-forte);
+}
+
+/* Responsivo da tela de autenticacao ------------------------------------- */
+
+@media (max-width: 900px) {
+    .auth {
+        grid-template-columns: 1fr;
+    }
+
+    .auth__marca {
+        gap: 2rem;
+        padding: 2.5rem 1.75rem 2rem;
+    }
+
+    .marca__nome {
+        margin-top: 1rem;
+    }
+
+    .marca__texto {
+        display: none;
+    }
+
+    .auth__painel {
+        padding: 0 1.25rem 3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .cartao-auth {
+        padding: 2rem 1.4rem;
+    }
+
+    .metricas {
+        gap: 0.5rem;
+    }
+
+    .metricas strong {
+        font-size: 1.25rem;
+    }
+
+    .metricas span {
+        font-size: 0.75rem;
+    }
+}
+
+/* ==========================================================================
+   TELA 2 - Dashboard (sidebar + conteudo)
+   ========================================================================== */
+
+.app {
+    min-height: 100vh;
+}
+
+/* Sidebar ---------------------------------------------------------------- */
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar);
+    height: 100vh;
+    padding: 1.5rem 1rem;
+    color: #fff;
+    background: linear-gradient(180deg, var(--navy-900) 0%, #08222c 60%, var(--verde-900) 100%);
+    transition: transform 0.25s ease;
+}
+
+.sidebar__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.5rem 1.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.sidebar__logo .raio {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    font-size: 1.05rem;
+}
+
+.sidebar__nav {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sidebar__nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--texto-claro);
+    border-radius: 10px;
+    transition: background 0.2s, color 0.2s, transform 0.25s ease;
+}
+
+.sidebar__nav a .fa-solid {
+    width: 18px;
+    text-align: center;
+    font-size: 0.95rem;
+}
+
+.sidebar__nav a:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateX(4px);
+}
+
+.sidebar__nav a.ativo {
+    color: #fff;
+    font-weight: 600;
+    background: var(--verde);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.28);
+}
+
+.sidebar__rodape {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.avatar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #06251a;
+    background: var(--verde);
+    border-radius: 50%;
+}
+
+.sidebar__usuario {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar__usuario strong {
+    display: block;
+    overflow: hidden;
+    font-size: 0.9rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar__usuario span {
+    font-size: 0.78rem;
+    color: var(--texto-claro);
+}
+
+.sidebar__sair {
+    padding: 0.4rem;
+    color: var(--texto-claro);
+    font-size: 1rem;
+}
+
+.sidebar__sair:hover {
+    color: #ff8080;
+}
+
+/* Area de conteudo ------------------------------------------------------- */
+
+.conteudo {
+    margin-left: var(--sidebar);
+    padding: 1.5rem clamp(1.25rem, 3vw, 2.5rem) 3rem;
+}
+
+.topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1.5rem;
+}
+
+.topo__data {
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+    text-transform: capitalize;
+}
+
+.topo__acoes {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sino {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: var(--texto-suave);
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: 50%;
+}
+
+.sino::after {
+    content: '';
+    position: absolute;
+    top: 9px;
+    right: 11px;
+    width: 8px;
+    height: 8px;
+    background: var(--verde);
+    border: 2px solid var(--cartao);
+    border-radius: 50%;
+}
+
+.menu-botao {
+    display: none;
+    padding: 0.5rem 0.7rem;
+    font-size: 1.05rem;
+    color: var(--texto);
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.saudacao h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 3.5vw, 2.15rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.saudacao p {
+    margin: 0.35rem 0 1.75rem;
+    color: var(--texto-suave);
+}
+
+/* Cards genericos -------------------------------------------------------- */
+
+.cartao {
+    padding: 1.25rem;
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-cartao);
+}
+
+.cartao__titulo {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* Quatro cards de metricas ----------------------------------------------- */
+
+.metricas-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.metrica__icone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 0.9rem;
+    color: var(--verde-forte);
+    background: var(--verde-suave);
+    border-radius: 12px;
+}
+
+.metrica__valor {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.metrica__valor small {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+}
+
+.metrica__legenda {
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+}
+
+/* Grafico + mini cards --------------------------------------------------- */
+
+.painel-duplo {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.grafico__cabecalho {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.grafico__cabecalho h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.grafico__cabecalho span {
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+}
+
+.grafico svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.mini-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.mini-cards .cartao {
+    flex: 1;
+}
+
+.mini__rotulo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--texto-suave);
+}
+
+.mini__valor {
+    margin: 0.45rem 0 0.2rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.mini__apoio {
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+}
+
+.barra {
+    height: 8px;
+    margin-top: 0.85rem;
+    overflow: hidden;
+    background: #eef1f5;
+    border-radius: 99px;
+}
+
+.barra > div {
+    height: 100%;
+    background: linear-gradient(90deg, var(--verde-forte), var(--verde));
+    border-radius: 99px;
+}
+
+/* Ultimas atividades ----------------------------------------------------- */
+
+.atividades__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.atividades__cabecalho h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.atividades__cabecalho a {
+    font-size: 0.85rem;
+}
+
+.atividade {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--borda);
+}
+
+.atividade:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.atividade__icone {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    color: var(--verde-forte);
+    background: var(--verde-suave);
+    border-radius: 12px;
+}
+
+.atividade__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.atividade__info strong {
+    display: block;
+    font-size: 0.93rem;
+}
+
+.atividade__info span {
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+}
+
+.atividade__xp {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--verde-forte);
+    white-space: nowrap;
+}
+
+/* Fundo escuro atras da sidebar aberta no mobile ------------------------- */
+
+.sombra-menu {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(7, 27, 46, 0.5);
+}
+
+/* Responsivo do dashboard ------------------------------------------------ */
+
+@media (max-width: 1100px) {
+    .painel-duplo {
+        grid-template-columns: 1fr;
+    }
+
+    .mini-cards {
+        flex-direction: row;
+    }
+}
+
+@media (max-width: 900px) {
+    .metricas-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .app.menu-aberto .sidebar {
+        transform: translateX(0);
+    }
+
+    .app.menu-aberto .sombra-menu {
+        display: block;
+    }
+
+    .conteudo {
+        margin-left: 0;
+    }
+
+    .menu-botao {
+        display: block;
+    }
+}
+
+@media (max-width: 700px) {
+    .mini-cards {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 560px) {
+    .metricas-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .topo__data {
+        font-size: 0.82rem;
+    }
+}
+
+/* ==========================================================================
+   TELA 0 - Landing page (index)
+   ========================================================================== */
+
+.hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    padding: clamp(2.5rem, 6vw, 5rem) 1.5rem clamp(3rem, 7vw, 5.5rem);
+    text-align: center;
+    color: #fff;
+    background: linear-gradient(160deg, #0a2340 0%, #0b2e3a 55%, var(--verde-900) 100%);
+}
+
+.hero__logo {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.hero__conteudo {
+    max-width: 640px;
+}
+
+.hero__conteudo h1 {
+    margin: 0 0 1rem;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--verde);
+}
+
+.hero__conteudo p {
+    margin: 0;
+    font-size: 1.1rem;
+    line-height: 1.65;
+    color: var(--texto-claro);
+}
+
+.hero__botoes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.hero__metricas {
+    width: 100%;
+    max-width: 620px;
+}
+
+/* Botoes ------------------------------------------------------------------ */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.85rem 2rem;
+    font: inherit;
+    font-size: 0.98rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.btn-preenchido {
+    color: #fff;
+    background: var(--verde);
+    border: 1.5px solid var(--verde);
+}
+
+.btn-preenchido:hover {
+    background: var(--verde-forte);
+    border-color: var(--verde-forte);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(34, 197, 94, 0.32);
+}
+
+.btn-contornado {
+    color: #fff;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+
+.btn-contornado:hover {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Funcionalidades ----------------------------------------------------------- */
+
+.features {
+    padding: clamp(3rem, 6vw, 5rem) 1.5rem;
+    background: var(--fundo);
+}
+
+.features__cabecalho {
+    max-width: 620px;
+    margin: 0 auto clamp(2rem, 4vw, 3rem);
+    text-align: center;
+}
+
+.features__cabecalho h2 {
+    margin: 0 0 0.6rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.features__cabecalho p {
+    margin: 0;
+    color: var(--texto-suave);
+}
+
+.features__grade {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.feature h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.02rem;
+    font-weight: 600;
+}
+
+.feature p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--texto-suave);
+}
+
+/* Rodape -------------------------------------------------------------------- */
+
+.rodape {
+    padding: 2rem 1.5rem;
+    text-align: center;
+    color: var(--texto-claro);
+    background: var(--navy-900);
+}
+
+.rodape__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.rodape__logo .raio {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+.rodape p {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+/* Responsivo da landing page ------------------------------------------------ */
+
+@media (max-width: 900px) {
+    .features__grade {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 520px) {
+    .features__grade {
+        grid-template-columns: 1fr;
+    }
+
+    .hero__botoes {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn {
+        width: 100%;
+    }
 }

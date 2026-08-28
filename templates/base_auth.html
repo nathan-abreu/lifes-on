@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifes On - {% block titulo %}{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="auth">
+
+        <!-- Coluna esquerda: marca -->
+        <aside class="auth__marca">
+            <div>
+                <div class="raio"><i class="fa-solid fa-bolt"></i></div>
+                <h1 class="marca__nome">Lifes On</h1>
+                <p class="marca__slogan">Sua jornada começa agora.</p>
+                <p class="marca__texto">
+                    Acompanhe seu desempenho, conquiste metas e evolua todos os dias.
+                </p>
+            </div>
+
+            <ul class="metricas">
+                <li>
+                    <strong>10K+</strong>
+                    <span>Alunos ativos</span>
+                </li>
+                <li>
+                    <strong>98%</strong>
+                    <span>Satisfação</span>
+                </li>
+                <li>
+                    <strong>5x</strong>
+                    <span>Mais ativo</span>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Coluna direita: formulario -->
+        <main class="auth__painel">
+            <div class="cartao-auth">
+                {% with mensagens = get_flashed_messages() %}
+                    {% for mensagem in mensagens %}
+                        <div class="aviso">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span>{{ mensagem }}</span>
+                        </div>
+                    {% endfor %}
+                {% endwith %}
+
+                {% block formulario %}{% endblock %}
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        // Mostrar/esconder senha nos campos marcados com data-olho.
+        document.querySelectorAll('[data-olho]').forEach(function (botao) {
+            botao.addEventListener('click', function () {
+                var campo = document.getElementById(botao.dataset.olho);
+                var icone = botao.querySelector('i');
+                var escondida = campo.type === 'password';
+
+                campo.type = escondida ? 'text' : 'password';
+                icone.classList.toggle('fa-eye', !escondida);
+                icone.classList.toggle('fa-eye-slash', escondida);
+            });
+        });
+    </script>
+</body>
+</html>
