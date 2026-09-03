@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lifes On - {% block titulo %}Dashboard{% endblock %}</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+<div class="app" id="app">
+
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+        <div class="sidebar__logo">
+            <span class="raio"><i class="fa-solid fa-bolt"></i></span>
+            Lifes On
+        </div>
+
+        <nav class="sidebar__nav">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if pagina_ativa == 'dashboard' else '' }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            <a href="{{ url_for('atividades') }}" class="{{ 'ativo' if pagina_ativa == 'atividades' else '' }}"><i class="fa-solid fa-circle-plus"></i> Registrar Atividade</a>
+            <a href="#"><i class="fa-solid fa-bullseye"></i> Metas</a>
+            <a href="#"><i class="fa-solid fa-chart-line"></i> Progresso</a>
+            <a href="#"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
+            <a href="#"><i class="fa-solid fa-lightbulb"></i> Dicas</a>
+            <a href="#"><i class="fa-solid fa-bell"></i> Alertas</a>
+            <a href="#"><i class="fa-solid fa-star"></i> Pontuação</a>
+            <a href="#"><i class="fa-solid fa-trophy"></i> Conquistas</a>
+            <a href="#"><i class="fa-solid fa-gear"></i> Configurações</a>
+        </nav>
+
+        <div class="sidebar__rodape">
+            <span class="avatar">{{ nome[0]|upper }}</span>
+            <div class="sidebar__usuario">
+                <strong>{{ nome }}</strong>
+                <span>1.240 pts · Nível 4</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="sidebar__sair" title="Sair" aria-label="Sair">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+        </div>
+    </aside>
+
+    <div class="sombra-menu" id="sombraMenu"></div>
+
+    <!-- ================= CONTEUDO ================= -->
+    <main class="conteudo">
+
+        <header class="topo">
+            <button type="button" class="menu-botao" id="menuBotao" aria-label="Abrir menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+
+            <p class="topo__data" id="dataHoje"></p>
+
+            <div class="topo__acoes">
+                <span class="sino"><i class="fa-solid fa-bell"></i></span>
+                <span class="avatar">{{ nome[0]|upper }}</span>
+            </div>
+        </header>
+
+        {% with mensagens = get_flashed_messages() %}
+            {% if mensagens %}
+                <div class="aviso" style="margin-bottom: 1.25rem;">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>{{ mensagens[0] }}</span>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block conteudo %}{% endblock %}
+
+    </main>
+</div>
+
+<script>
+    // Data de hoje por extenso, em portugues.
+    document.getElementById('dataHoje').textContent =
+        new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+    // Sidebar deslizante no mobile.
+    var app = document.getElementById('app');
+    document.getElementById('menuBotao').addEventListener('click', function () {
+        app.classList.toggle('menu-aberto');
+    });
+    document.getElementById('sombraMenu').addEventListener('click', function () {
+        app.classList.remove('menu-aberto');
+    });
+</script>
+{% block scripts_extra %}{% endblock %}
+</body>
+</html>

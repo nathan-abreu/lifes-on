@@ -1,0 +1,132 @@
+{% extends "base_dashboard.html" %}
+
+{% set pagina_ativa = 'atividades' %}
+
+{% block titulo %}{{ 'Editar Atividade' if modo == 'editar' else 'Registrar Atividade' }}{% endblock %}
+
+{% block conteudo %}
+        <section class="pagina__cabecalho">
+            <h1>{{ 'Editar Atividade' if modo == 'editar' else 'Registrar Atividade' }}</h1>
+            <p>Adicione sua atividade física e ganhe XP</p>
+        </section>
+
+        <div class="atividade-form__grade">
+            <!-- Coluna esquerda: formulario -->
+            <form class="cartao" method="post" id="formAtividade"
+                  action="{{ url_for('atividade_editar', id_atividade=atividade.id_atividade) if modo == 'editar' else url_for('atividade_nova') }}">
+
+                <h2 class="cartao__titulo">Detalhes da Atividade</h2>
+
+                <div class="campo">
+                    <label for="tipo_exercicio">Tipo de exercício</label>
+                    <select id="tipo_exercicio" name="tipo_exercicio" required>
+                        <option value="" disabled {{ 'selected' if not atividade }}>Selecione um exercício</option>
+                        {% for tipo in tipos_exercicio %}
+                            <option value="{{ tipo }}" {{ 'selected' if atividade and atividade.tipo_exercicio == tipo }}>{{ tipo }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="campo">
+                    <label for="duracao">Duração (minutos)</label>
+                    <input type="number" id="duracao" name="duracao" min="1" step="1" required
+                           value="{{ atividade.duracao if atividade else '' }}">
+                </div>
+
+                <div class="campo">
+                    <label>Frequência (vezes por semana)</label>
+                    <div class="frequencia-grupo" id="frequenciaGrupo">
+                        {% for n in range(1, 8) %}
+                            <button type="button" class="frequencia-botao {{ 'selecionado' if atividade and atividade.frequencia == n }}" data-valor="{{ n }}">{{ n }}</button>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="frequencia" name="frequencia" value="{{ atividade.frequencia if atividade else '' }}" required>
+                </div>
+
+                <button type="submit" class="botao-verde">Salvar atividade</button>
+            </form>
+
+            <!-- Coluna direita: previa + atalhos -->
+            <div>
+                <div class="cartao previa">
+                    <h2 class="cartao__titulo">Prévia da atividade</h2>
+
+                    <div class="previa__linha">
+                        <span class="previa__rotulo">Exercício</span>
+                        <span class="previa__valor" id="previaExercicio">—</span>
+                    </div>
+                    <div class="previa__linha">
+                        <span class="previa__rotulo">Duração</span>
+                        <span class="previa__valor" id="previaDuracao">—</span>
+                    </div>
+                    <div class="previa__linha">
+                        <span class="previa__rotulo">Frequência</span>
+                        <span class="previa__valor" id="previaFrequencia">—</span>
+                    </div>
+                    <div class="previa__linha">
+                        <span class="previa__rotulo">XP estimado</span>
+                        <span class="previa__valor destaque" id="previaXp">0 XP</span>
+                    </div>
+                </div>
+
+                <section class="cartao exercicios-populares">
+                    <h2 class="cartao__titulo">Exercícios populares</h2>
+                    <div class="exercicios-populares__lista">
+                        {% for tipo in tipos_exercicio %}
+                            <button type="button" class="exercicio-atalho" data-tipo="{{ tipo }}">{{ tipo }}</button>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+        </div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    (function () {
+        var selectExercicio = document.getElementById('tipo_exercicio');
+        var inputDuracao = document.getElementById('duracao');
+        var inputFrequencia = document.getElementById('frequencia');
+        var botoesFrequencia = document.querySelectorAll('.frequencia-botao');
+
+        var previaExercicio = document.getElementById('previaExercicio');
+        var previaDuracao = document.getElementById('previaDuracao');
+        var previaFrequencia = document.getElementById('previaFrequencia');
+        var previaXp = document.getElementById('previaXp');
+
+        function atualizarPrevia() {
+            previaExercicio.textContent = selectExercicio.value || '—';
+
+            var duracao = parseInt(inputDuracao.value, 10);
+            previaDuracao.textContent = duracao > 0 ? duracao + ' min' : '—';
+
+            var frequencia = parseInt(inputFrequencia.value, 10);
+            previaFrequencia.textContent = frequencia > 0 ? frequencia + 'x por semana' : '—';
+
+            var xp = duracao > 0 ? duracao * 2 : 0;
+            previaXp.textContent = xp + ' XP';
+        }
+
+        selectExercicio.addEventListener('change', atualizarPrevia);
+        inputDuracao.addEventListener('input', atualizarPrevia);
+
+        botoesFrequencia.forEach(function (botao) {
+            botao.addEventListener('click', function () {
+                botoesFrequencia.forEach(function (b) { b.classList.remove('selecionado'); });
+                botao.classList.add('selecionado');
+                inputFrequencia.value = botao.dataset.valor;
+                atualizarPrevia();
+            });
+        });
+
+        document.querySelectorAll('.exercicio-atalho').forEach(function (atalho) {
+            atalho.addEventListener('click', function () {
+                selectExercicio.value = atalho.dataset.tipo;
+                atualizarPrevia();
+            });
+        });
+
+        atualizarPrevia();
+    })();
+</script>
+{% endblock %}

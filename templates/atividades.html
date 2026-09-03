@@ -1,0 +1,57 @@
+{% extends "base_dashboard.html" %}
+
+{% set pagina_ativa = 'atividades' %}
+
+{% block titulo %}Atividades{% endblock %}
+
+{% block conteudo %}
+        <section class="atividades__topo">
+            <div class="pagina__cabecalho" style="margin-bottom: 0;">
+                <h1>Minhas Atividades</h1>
+                <p>Acompanhe tudo o que você já registrou</p>
+            </div>
+            <a href="{{ url_for('atividade_nova') }}" class="btn btn-preenchido">
+                <i class="fa-solid fa-plus"></i>&nbsp; Nova Atividade
+            </a>
+        </section>
+
+        {% if atividades %}
+            <div class="lista-atividades">
+                {% for atividade in atividades %}
+                    <article class="cartao atividade-linha">
+                        <span class="atividade__icone"><i class="fa-solid fa-person-running"></i></span>
+
+                        <div class="atividade-linha__info">
+                            <strong>{{ atividade.tipo_exercicio }}</strong>
+                            <div class="atividade-linha__meta">
+                                <span><i class="fa-solid fa-clock"></i> {{ atividade.duracao }} min</span>
+                                <span><i class="fa-solid fa-repeat"></i> {{ atividade.frequencia }}x por semana</span>
+                                <span><i class="fa-solid fa-calendar-days"></i> {{ atividade.data_registro[:10] }}</span>
+                            </div>
+                        </div>
+
+                        <div class="atividade-linha__acoes">
+                            <a href="{{ url_for('atividade_editar', id_atividade=atividade.id_atividade) }}"
+                               class="botao-acao" title="Editar" aria-label="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form method="post" action="{{ url_for('atividade_excluir', id_atividade=atividade.id_atividade) }}"
+                                  onsubmit="return confirm('Tem certeza que deseja excluir esta atividade?');">
+                                <button type="submit" class="botao-acao excluir" title="Excluir" aria-label="Excluir">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="cartao estado-vazio">
+                <div class="metrica__icone"><i class="fa-solid fa-person-running"></i></div>
+                <p>Você ainda não registrou nenhuma atividade.</p>
+                <a href="{{ url_for('atividade_nova') }}" class="btn btn-preenchido">
+                    <i class="fa-solid fa-plus"></i>&nbsp; Registrar primeira atividade
+                </a>
+            </div>
+        {% endif %}
+{% endblock %}
