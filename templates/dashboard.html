@@ -10,6 +10,61 @@
             <p>Hoje é um ótimo dia para treinar.</p>
         </section>
 
+        <!-- Timer de atividade -->
+        <section class="cartao timer-cartao">
+            <div class="timer-cartao__cabecalho">
+                <span class="atividade__icone"><i class="fa-solid fa-stopwatch"></i></span>
+                <div>
+                    <h2 class="cartao__titulo" style="margin-bottom: 0.2rem;">Iniciar Atividade</h2>
+                    <p class="timer-cartao__legenda">Escolha uma atividade já registrada e cronometre a sessão</p>
+                </div>
+            </div>
+
+            {% if atividades_registradas %}
+                <div class="timer-cartao__corpo" id="timerFormulario">
+                    <select id="timerAtividade" class="timer-cartao__select">
+                        <option value="" selected>Selecione uma atividade</option>
+                        {% for atividade in atividades_registradas %}
+                            <option value="{{ atividade.id_atividade }}"
+                                    data-tipo="{{ atividade.tipo_exercicio }}"
+                                    data-duracao="{{ atividade.duracao }}">
+                                {{ atividade.tipo_exercicio }} — {{ atividade.duracao }} min planejados
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" id="timerBotaoIniciar" class="botao-verde timer-cartao__botao" disabled>
+                        Iniciar Atividade
+                    </button>
+                </div>
+            {% else %}
+                <div class="timer-cartao__corpo" id="timerFormulario">
+                    <p class="timer-cartao__vazio">
+                        Registre uma atividade primeiro para poder cronometrá-la.
+                        <a href="{{ url_for('atividade_nova') }}">Registrar atividade</a>
+                    </p>
+                </div>
+            {% endif %}
+
+            <div class="timer-cartao__corpo" id="timerRodando" hidden>
+                <span class="timer-cartao__relogio" id="timerRelogio">00:00</span>
+                <span class="timer-cartao__tipo-atual" id="timerTipoAtual"></span>
+                <button type="button" id="timerBotaoConcluir" class="botao-vermelho timer-cartao__botao">
+                    Concluir Atividade
+                </button>
+            </div>
+
+            <div class="timer-cartao__corpo timer-cartao__concluido" id="timerConcluido" hidden>
+                <p id="timerMensagem"></p>
+                <a href="{{ url_for('atividades') }}">Ver em Atividades</a>
+            </div>
+
+            <div class="timer-cartao__corpo timer-cartao__concluido timer-cartao__curta" id="timerCurta" hidden>
+                <p>Atividade muito curta para registrar (mínimo 30 segundos).</p>
+            </div>
+
+            <p class="timer-cartao__erro" id="timerErro" hidden></p>
+        </section>
+
         <!-- Quatro metricas -->
         <section class="metricas-grid">
             <article class="cartao">
@@ -158,4 +213,163 @@
                 <span class="atividade__xp">+90 XP</span>
             </div>
         </section>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    (function () {
+        var formulario = document.getElementById('timerFormulario');
+        var rodando = document.getElementById('timerRodando');
+        var concluido = document.getElementById('timerConcluido');
+        var curta = document.getElementById('timerCurta');
+        var erro = document.getElementById('timerErro');
+
+        var selectAtividade = document.getElementById('timerAtividade');
+        var botaoIniciar = document.getElementById('timerBotaoIniciar');
+        var botaoConcluir = document.getElementById('timerBotaoConcluir');
+
+        var relogio = document.getElementById('timerRelogio');
+        var tipoAtual = document.getElementById('timerTipoAtual');
+        var mensagem = document.getElementById('timerMensagem');
+
+        if (!selectAtividade || !botaoIniciar) {
+            // Nenhuma atividade registrada ainda - nada para cronometrar.
+            return;
+        }
+
+        var intervalo = null;
+        var autoResetTimeout = null;
+        var tipoSelecionado = '';
+        var duracaoPlanejadaMinutos = 0;
+        var duracaoPlanejadaSegundos = 0;
+        var segundosRestantes = 0;
+
+        function formatarTempo(segundos) {
+            var min = Math.floor(segundos / 60);
+            var seg = segundos % 60;
+            return String(min).padStart(2, '0') + ':' + String(seg).padStart(2, '0');
+        }
+
+        function mostrarEstado(estado) {
+            formulario.hidden = estado !== 'formulario';
+            rodando.hidden = estado !== 'rodando';
+            concluido.hidden = estado !== 'concluido';
+            curta.hidden = estado !== 'curta';
+        }
+
+        function pararRelogio() {
+            if (intervalo) {
+                clearInterval(intervalo);
+                intervalo = null;
+            }
+        }
+
+        function reiniciar() {
+            if (autoResetTimeout) {
+                clearTimeout(autoResetTimeout);
+                autoResetTimeout = null;
+            }
+            selectAtividade.value = '';
+            botaoIniciar.disabled = true;
+            mostrarEstado('formulario');
+        }
+
+        function enviarConclusao(segundosDecorridos) {
+            botaoConcluir.disabled = true;
+
+            fetch('{{ url_for("atividade_concluir_timer") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ tipo_exercicio: tipoSelecionado, segundos_decorridos: segundosDecorridos })
+            })
+                .then(function (resposta) {
+                    return resposta.json().then(function (corpo) {
+                        return { ok: resposta.ok, corpo: corpo };
+                    });
+                })
+                .then(function (resultado) {
+                    botaoConcluir.disabled = false;
+
+                    if (!resultado.ok) {
+                        erro.textContent = resultado.corpo.erro || 'Não foi possível registrar a atividade.';
+                        erro.hidden = false;
+                        mostrarEstado('rodando');
+                        return;
+                    }
+
+                    erro.hidden = true;
+
+                    if (resultado.corpo.registrado === false) {
+                        mostrarEstado('curta');
+                        autoResetTimeout = setTimeout(reiniciar, 6000);
+                        return;
+                    }
+
+                    mensagem.textContent = 'Atividade registrada: ' + resultado.corpo.duracao + ' min de ' +
+                        resultado.corpo.tipo_exercicio + '!';
+                    mostrarEstado('concluido');
+                    autoResetTimeout = setTimeout(reiniciar, 8000);
+                })
+                .catch(function () {
+                    botaoConcluir.disabled = false;
+                    erro.textContent = 'Erro de conexão. Tente novamente.';
+                    erro.hidden = false;
+                    mostrarEstado('rodando');
+                });
+        }
+
+        function concluirPorTempoEsgotado() {
+            pararRelogio();
+            enviarConclusao(duracaoPlanejadaSegundos);
+        }
+
+        function atualizarRelogio() {
+            segundosRestantes -= 1;
+
+            if (segundosRestantes <= 0) {
+                relogio.textContent = '00:00';
+                concluirPorTempoEsgotado();
+                return;
+            }
+
+            relogio.textContent = formatarTempo(segundosRestantes);
+        }
+
+        selectAtividade.addEventListener('change', function () {
+            botaoIniciar.disabled = !selectAtividade.value;
+        });
+
+        botaoIniciar.addEventListener('click', function () {
+            erro.hidden = true;
+
+            var opcao = selectAtividade.options[selectAtividade.selectedIndex];
+            if (!opcao || !opcao.value) {
+                erro.textContent = 'Selecione uma atividade antes de iniciar.';
+                erro.hidden = false;
+                return;
+            }
+
+            tipoSelecionado = opcao.dataset.tipo;
+            duracaoPlanejadaMinutos = parseInt(opcao.dataset.duracao, 10);
+            duracaoPlanejadaSegundos = duracaoPlanejadaMinutos * 60;
+            segundosRestantes = duracaoPlanejadaSegundos;
+
+            tipoAtual.textContent = tipoSelecionado + ' em andamento...';
+            relogio.textContent = formatarTempo(segundosRestantes);
+
+            pararRelogio();
+            intervalo = setInterval(atualizarRelogio, 1000);
+            mostrarEstado('rodando');
+        });
+
+        botaoConcluir.addEventListener('click', function () {
+            pararRelogio();
+
+            var segundosDecorridos = duracaoPlanejadaSegundos - segundosRestantes;
+
+            enviarConclusao(segundosDecorridos);
+        });
+    })();
+</script>
 {% endblock %}

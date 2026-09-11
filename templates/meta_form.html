@@ -1,0 +1,57 @@
+{% extends "base_dashboard.html" %}
+
+{% set pagina_ativa = 'metas' %}
+
+{% block titulo %}{{ 'Editar Meta' if modo == 'editar' else 'Nova Meta' }}{% endblock %}
+
+{% block conteudo %}
+        <section class="pagina__cabecalho">
+            <h1>{{ 'Editar Meta' if modo == 'editar' else 'Nova Meta' }}</h1>
+            <p>{{ 'Ajuste sua meta e atualize seu progresso' if modo == 'editar' else 'Defina um novo objetivo para acompanhar' }}</p>
+        </section>
+
+        <form class="cartao meta-form" method="post"
+              action="{{ url_for('meta_editar', id_meta=meta.id_meta) if modo == 'editar' else url_for('meta_nova') }}">
+
+            <h2 class="cartao__titulo">Detalhes da meta</h2>
+
+            <div class="campo">
+                <label for="descricao">Objetivo</label>
+                <input type="text" id="descricao" name="descricao" placeholder="Ex: Correr 5km sem parar" required
+                       value="{{ meta.descricao if meta else '' }}">
+            </div>
+
+            <div class="campo">
+                <label for="prazo">Prazo</label>
+                <input type="date" id="prazo" name="prazo" required
+                       value="{{ meta.prazo[:10] if meta else '' }}">
+            </div>
+
+            {% if modo == 'editar' %}
+                <div class="campo">
+                    <label for="progresso">Progresso atual</label>
+                    <div class="progresso-slider">
+                        <input type="range" id="progresso" name="progresso" min="0" max="100" step="1"
+                               value="{{ meta.progresso }}">
+                        <span class="progresso-slider__valor" id="progressoValor">{{ meta.progresso }}%</span>
+                    </div>
+                </div>
+            {% endif %}
+
+            <button type="submit" class="botao-verde">Salvar meta</button>
+        </form>
+{% endblock %}
+
+{% block scripts_extra %}
+{% if modo == 'editar' %}
+<script>
+    (function () {
+        var slider = document.getElementById('progresso');
+        var valor = document.getElementById('progressoValor');
+        slider.addEventListener('input', function () {
+            valor.textContent = slider.value + '%';
+        });
+    })();
+</script>
+{% endif %}
+{% endblock %}

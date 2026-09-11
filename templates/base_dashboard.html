@@ -23,7 +23,7 @@
         <nav class="sidebar__nav">
             <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if pagina_ativa == 'dashboard' else '' }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
             <a href="{{ url_for('atividades') }}" class="{{ 'ativo' if pagina_ativa == 'atividades' else '' }}"><i class="fa-solid fa-circle-plus"></i> Registrar Atividade</a>
-            <a href="#"><i class="fa-solid fa-bullseye"></i> Metas</a>
+            <a href="{{ url_for('metas') }}" class="{{ 'ativo' if pagina_ativa == 'metas' else '' }}"><i class="fa-solid fa-bullseye"></i> Metas</a>
             <a href="#"><i class="fa-solid fa-chart-line"></i> Progresso</a>
             <a href="#"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
             <a href="#"><i class="fa-solid fa-lightbulb"></i> Dicas</a>

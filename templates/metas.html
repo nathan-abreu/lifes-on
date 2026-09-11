@@ -1,0 +1,63 @@
+{% extends "base_dashboard.html" %}
+
+{% set pagina_ativa = 'metas' %}
+
+{% block titulo %}Metas{% endblock %}
+
+{% block conteudo %}
+        <section class="metas__topo">
+            <div class="pagina__cabecalho" style="margin-bottom: 0;">
+                <h1>Metas</h1>
+                <p>Defina objetivos e acompanhe seu progresso</p>
+            </div>
+            <a href="{{ url_for('meta_nova') }}" class="btn btn-preenchido">
+                <i class="fa-solid fa-plus"></i>&nbsp; Nova meta
+            </a>
+        </section>
+
+        {% if metas %}
+            <div class="lista-metas">
+                {% for meta in metas %}
+                    <article class="cartao meta-cartao">
+                        <div class="meta-cartao__cabecalho">
+                            <div class="meta-cartao__titulo">
+                                <span class="atividade__icone"><i class="fa-solid fa-bullseye"></i></span>
+                                <div>
+                                    <strong>{{ meta.descricao }}</strong>
+                                    <span class="meta__prazo">Prazo: {{ meta.prazo_formatado }}</span>
+                                </div>
+                            </div>
+                            <span class="meta__percentual">{{ meta.progresso }}%</span>
+                        </div>
+
+                        <div class="barra">
+                            <div style="width: {{ meta.progresso }}%;"></div>
+                        </div>
+
+                        <p class="meta__incentivo">{{ meta.mensagem_incentivo }}</p>
+
+                        <div class="atividade-linha__acoes meta-cartao__acoes">
+                            <a href="{{ url_for('meta_editar', id_meta=meta.id_meta) }}"
+                               class="botao-acao" title="Editar" aria-label="Editar">
+                                <i class="fa-solid fa-pen"></i>
+                            </a>
+                            <form method="post" action="{{ url_for('meta_excluir', id_meta=meta.id_meta) }}"
+                                  onsubmit="return confirm('Tem certeza que deseja excluir esta meta?');">
+                                <button type="submit" class="botao-acao excluir" title="Excluir" aria-label="Excluir">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="cartao estado-vazio">
+                <div class="metrica__icone"><i class="fa-solid fa-bullseye"></i></div>
+                <p>Você ainda não definiu nenhuma meta.</p>
+                <a href="{{ url_for('meta_nova') }}" class="btn btn-preenchido">
+                    <i class="fa-solid fa-plus"></i>&nbsp; Criar primeira meta
+                </a>
+            </div>
+        {% endif %}
+{% endblock %}
