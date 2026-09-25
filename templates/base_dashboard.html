@@ -24,20 +24,22 @@
             <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if pagina_ativa == 'dashboard' else '' }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
             <a href="{{ url_for('atividades') }}" class="{{ 'ativo' if pagina_ativa == 'atividades' else '' }}"><i class="fa-solid fa-circle-plus"></i> Registrar Atividade</a>
             <a href="{{ url_for('metas') }}" class="{{ 'ativo' if pagina_ativa == 'metas' else '' }}"><i class="fa-solid fa-bullseye"></i> Metas</a>
-            <a href="#"><i class="fa-solid fa-chart-line"></i> Progresso</a>
-            <a href="#"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
+            <a href="{{ url_for('progresso') }}" class="{{ 'ativo' if pagina_ativa == 'progresso' else '' }}"><i class="fa-solid fa-chart-line"></i> Progresso</a>
+            <a href="{{ url_for('agenda') }}" class="{{ 'ativo' if pagina_ativa == 'agenda' else '' }}"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
+            {# Atalhos preexistentes de etapas futuras ficam fora da navegação até a Semana 7.
             <a href="#"><i class="fa-solid fa-lightbulb"></i> Dicas</a>
-            <a href="#"><i class="fa-solid fa-bell"></i> Alertas</a>
             <a href="#"><i class="fa-solid fa-star"></i> Pontuação</a>
-            <a href="#"><i class="fa-solid fa-trophy"></i> Conquistas</a>
             <a href="#"><i class="fa-solid fa-gear"></i> Configurações</a>
+            #}
+            <a href="{{ url_for('alertas') }}" class="{{ 'ativo' if pagina_ativa == 'alertas' else '' }}"><i class="fa-solid fa-bell"></i> Alertas</a>
+            <a href="{{ url_for('conquistas') }}" class="{{ 'ativo' if pagina_ativa == 'conquistas' else '' }}"><i class="fa-solid fa-trophy"></i> Conquistas</a>
         </nav>
 
         <div class="sidebar__rodape">
             <span class="avatar">{{ nome[0]|upper }}</span>
             <div class="sidebar__usuario">
                 <strong>{{ nome }}</strong>
-                <span>1.240 pts · Nível 4</span>
+                <span>Sua jornada fitness</span>
             </div>
             <a href="{{ url_for('logout') }}" class="sidebar__sair" title="Sair" aria-label="Sair">
                 <i class="fa-solid fa-right-from-bracket"></i>
@@ -58,7 +60,7 @@
             <p class="topo__data" id="dataHoje"></p>
 
             <div class="topo__acoes">
-                <span class="sino"><i class="fa-solid fa-bell"></i></span>
+                <a href="{{ url_for('alertas') }}" class="sino" aria-label="Ver alertas e lembretes"><i class="fa-solid fa-bell"></i>{% if alertas_nao_lidos %}<small>{{ alertas_nao_lidos }}</small>{% endif %}</a>
                 <span class="avatar">{{ nome[0]|upper }}</span>
             </div>
         </header>

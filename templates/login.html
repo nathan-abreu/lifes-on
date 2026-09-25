@@ -7,6 +7,7 @@
 <p class="cartao-auth__sub">Bem-vindo de volta!</p>
 
 <form method="POST" action="{{ url_for('login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="campo">
         <label for="email">E-mail</label>
         <div class="campo__caixa">

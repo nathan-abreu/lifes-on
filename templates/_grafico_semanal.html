@@ -1,0 +1,15 @@
+    <article class="cartao grafico">
+        <div class="grafico__cabecalho"><h2><a href="{{ url_for('progresso') }}">{{ 'Resumo semanal' if pagina_ativa == 'dashboard' else 'Evolução semanal' }}</a></h2><span>Segunda a domingo · Brasília</span></div>
+        <p class="mini__apoio">{{ resumo.atividades_semana }} atividade(s) em {{ resumo.dias_ativos_semana }} dia(s) nesta semana.</p>
+        {% if not resumo.atividades_semana %}<p class="mini__apoio">Ainda não há atividades nesta semana. Seus registros aparecerão aqui.</p>{% endif %}
+        <div class="grafico-container"><canvas id="graficoProgresso" role="img" aria-label="Minutos registrados por dia nesta semana"></canvas></div>
+        <script id="dadosProgresso" type="application/json">{{ resumo.grafico|tojson }}</script>
+        <details class="grafico-tabela">
+            <summary>Ver dados do gráfico</summary>
+            <table>
+                <thead><tr><th>Dia</th><th>Minutos</th><th>Atividades</th></tr></thead>
+                <tbody>{% for dia in resumo.grafico.labels %}<tr><td>{{ dia }}</td><td>{{ resumo.grafico.minutos[loop.index0] }}</td><td>{{ resumo.grafico.atividades[loop.index0] }}</td></tr>{% endfor %}</tbody>
+            </table>
+        </details>
+        <p id="graficoErro" class="mini__apoio" hidden>Não foi possível carregar o gráfico. Os dados estão disponíveis na tabela acima.</p>
+    </article>

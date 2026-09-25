@@ -1,0 +1,38 @@
+{% include '_metricas.html' %}
+
+<section class="painel-duplo">
+    {% include '_grafico_semanal.html' %}
+    <div class="mini-cards">
+        <article class="cartao">
+            <p class="mini__rotulo">Próximo treino</p>
+            {% if not agenda_disponivel %}
+                <p class="mini__apoio">Agenda indisponível. {{ erro_agenda }}</p>
+            {% elif proximo_treino %}
+                <p class="mini__valor">{{ proximo_treino.titulo }}</p>
+                <p class="mini__apoio">{{ proximo_treino.data_formatada }} às {{ proximo_treino.horario_formatado }}</p>
+            {% else %}<p class="mini__apoio">Nenhum treino agendado.</p>{% endif %}
+            <a href="{{ url_for('agenda') }}">Ver agenda</a>
+            {% if pagina_ativa == 'dashboard' and proximo_treino and agenda_disponivel %}
+            <button type="button" class="timer-secundario" data-iniciar-treino="{{ proximo_treino.id_agenda }}">Iniciar treino</button>
+            {% endif %}
+        </article>
+        <article class="cartao">
+            <p class="mini__rotulo">Meta atual</p>
+            {% if meta_atual %}
+                <p class="mini__valor">{{ meta_atual.descricao }}</p>
+                <p class="mini__apoio">{{ meta_atual.progresso }}% · Prazo: {{ meta_atual.prazo_formatado }}</p>
+                <div class="barra"><div style="width: {{ meta_atual.progresso }}%"></div></div>
+            {% elif metas %}<p class="mini__apoio">Todas as suas metas estão concluídas!</p>
+            {% else %}<p class="mini__apoio">Você ainda não definiu metas.</p>{% endif %}
+            <a href="{{ url_for('metas') }}">Ver metas</a>
+        </article>
+        <article class="cartao">
+            <p class="mini__rotulo">Suas conquistas</p>
+            {% if erro_conquistas %}<p class="mini__apoio">{{ erro_conquistas }}</p>{% else %}
+                <p class="mini__valor">{{ total_conquistas }} de {{ conquistas|length }} desbloqueadas</p>
+                {% if ultima_conquista %}<p class="mini__apoio">Mais recente: {{ ultima_conquista.nome }} · {{ ultima_conquista.data_formatada or 'data não informada' }}</p>{% endif %}
+            {% endif %}
+            <a href="{{ url_for('conquistas') }}">Ver conquistas</a>
+        </article>
+    </div>
+</section>

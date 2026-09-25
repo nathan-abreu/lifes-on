@@ -12,6 +12,7 @@
 
         <form class="cartao meta-form" method="post"
               action="{{ url_for('meta_editar', id_meta=meta.id_meta) if modo == 'editar' else url_for('meta_nova') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <h2 class="cartao__titulo">Detalhes da meta</h2>
 

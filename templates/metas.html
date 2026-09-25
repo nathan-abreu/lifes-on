@@ -43,6 +43,7 @@
                             </a>
                             <form method="post" action="{{ url_for('meta_excluir', id_meta=meta.id_meta) }}"
                                   onsubmit="return confirm('Tem certeza que deseja excluir esta meta?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" class="botao-acao excluir" title="Excluir" aria-label="Excluir">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>

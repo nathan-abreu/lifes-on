@@ -1,0 +1,16 @@
+{% extends "base_dashboard.html" %}
+{% set pagina_ativa = 'agenda' %}
+{% block titulo %}{{ 'Editar treino' if modo == 'editar' else 'Agendar treino' }}{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho"><h1>{{ 'Editar treino' if modo == 'editar' else 'Agendar treino' }}</h1><p>Escolha uma data e um horário para sua próxima atividade.</p></section>
+{% if erro_banco %}<div class="aviso" role="alert">{{ erro_banco }}</div>{% endif %}
+<form class="cartao meta-form" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="campo"><label for="titulo">Título</label><input id="titulo" name="titulo" required maxlength="120" value="{{ treino.titulo if treino else '' }}"></div>
+    <div class="campo"><label for="data">Data</label><input type="date" id="data" name="data" required min="{{ hoje }}" value="{{ treino.data if treino else '' }}"></div>
+    <div class="campo"><label for="horario">Horário de Brasília</label><input type="time" id="horario" name="horario" required value="{{ treino.horario[:5] if treino else '' }}"></div>
+    <div class="campo"><label for="descricao">Descrição (opcional)</label><textarea id="descricao" name="descricao" rows="4" maxlength="2000">{{ (treino.descricao or '') if treino else '' }}</textarea></div>
+    <button class="botao-verde" type="submit">Salvar treino</button>
+    <p><a href="{{ url_for('agenda') }}">Voltar à agenda</a></p>
+</form>
+{% endblock %}

@@ -14,6 +14,7 @@
             <!-- Coluna esquerda: formulario -->
             <form class="cartao" method="post" id="formAtividade"
                   action="{{ url_for('atividade_editar', id_atividade=atividade.id_atividade) if modo == 'editar' else url_for('atividade_nova') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <h2 class="cartao__titulo">Detalhes da Atividade</h2>
 

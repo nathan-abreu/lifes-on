@@ -28,6 +28,8 @@
     --sidebar: 260px;
 }
 
+[hidden] { display: none !important; }
+
 *,
 *::before,
 *::after {
@@ -1488,4 +1490,85 @@ a:hover {
     .timer-cartao__botao {
         width: 100%;
     }
+}
+
+/* Estado de leitura, restrito à página de notificações. */
+.notificacao { padding: 1rem; border-radius: 12px; margin-top: .75rem; }
+.notificacao--nova { background: var(--verde-suave); }
+.notificacao--nova strong { color: var(--verde-forte); }
+.notificacao--lida strong, .notificacao small { color: var(--texto-suave); }
+.notificacao .atividade__info { min-width: 0; }
+.notificacao form { margin-top: .5rem; }
+
+/* Dashboard ao final da Semana 7: mesmas cores e componentes do projeto. */
+.dashboard-saudacao { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.dashboard-saudacao h1 { overflow-wrap: anywhere; }
+.dashboard-atalho { width: auto; font-size: .85rem; white-space: nowrap; text-decoration: none; }
+.dashboard-semana7 .metricas-grid .cartao { padding: 1.1rem 1.25rem; }
+.dashboard-semana7 .metrica__icone { width: 34px; height: 34px; margin-bottom: .65rem; }
+.dashboard-semana7 .metrica__valor { color: var(--verde-forte); }
+.dashboard-semana7 .painel-duplo { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); align-items: stretch; }
+.dashboard-semana7 .mini-cards { gap: .85rem; }
+.dashboard-semana7 .mini-cards .cartao { padding: 1rem 1.15rem; min-width: 0; overflow-wrap: anywhere; }
+.dashboard-semana7 .mini-cards .cartao:first-child { border-left: 3px solid var(--verde); }
+.dashboard-semana7 .mini-cards a { display: inline-block; margin-top: .6rem; font-size: .8rem; }
+.dashboard-semana7 .grafico { min-width: 0; }
+.dashboard-semana7 .grafico-container { height: 270px; }
+.dashboard-semana7 .grafico-container canvas { max-width: 100%; }
+.dashboard-semana7 .timer-cartao { border: 1px solid #ccebd8; scroll-margin-top: 1rem; }
+.dashboard-semana7 .timer-cartao__cabecalho .cartao__titulo { margin-bottom: .25rem; }
+.dashboard-semana7 .timer-cartao__relogio { font-size: clamp(2rem, 6vw, 3rem); color: var(--verde-forte); margin: .4rem 0; }
+.dashboard-semana7 .timer-cartao__select { min-width: 0; }
+.dashboard-semana7 [hidden] { display: none !important; }
+.timer-acoes { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+.timer-secundario { padding: .8rem 1rem; border: 1px solid var(--borda); border-radius: 12px; background: white; color: var(--texto); font: inherit; cursor: pointer; }
+.timer-secundario:hover { background: var(--verde-suave); }
+.timer-secundario:disabled { opacity: .55; cursor: wait; }
+.timer-conquista { margin-top: .8rem !important; padding: 1rem; border-radius: 12px; background: var(--verde-suave); animation: conquista-entrada .3s ease-out; }
+#timerConcluido:focus, #timerConfirmacao:focus { outline: 2px solid var(--verde); outline-offset: 6px; border-radius: 8px; }
+.sino::after { display: none; }
+.sino small { position: absolute; top: -4px; right: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 10px; background: var(--verde-forte); color: white; font-size: .65rem; line-height: 18px; text-align: center; }
+@keyframes conquista-entrada { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .timer-conquista { animation: none; } }
+@media (max-width: 1000px) { .dashboard-semana7 .painel-duplo { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) {
+    .dashboard-saudacao { align-items: flex-start; flex-direction: column; }
+    .dashboard-semana7 .metricas-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+    .dashboard-semana7 .metricas-grid .cartao { padding: 1rem; }
+    .dashboard-semana7 .timer-cartao__corpo { align-items: stretch; flex-direction: column; }
+    .dashboard-semana7 .grafico__cabecalho { align-items: flex-start; flex-direction: column; gap: .4rem; }
+    .dashboard-semana7 .mini-cards { display: flex; flex-direction: column; }
+    .timer-acoes > button { width: 100%; }
+}
+
+/* Semanas 6 e 7: componentes que reutilizam os cards e a paleta existentes. */
+.secao-acompanhamento { margin-bottom: 1.25rem; }
+.grafico-container { position: relative; height: 260px; }
+.grafico-tabela { margin-top: 1rem; font-size: 0.85rem; }
+.grafico-tabela summary { cursor: pointer; color: var(--verde-forte); }
+.grafico-tabela table { width: 100%; margin-top: 0.75rem; border-collapse: collapse; }
+.grafico-tabela th, .grafico-tabela td { padding: 0.4rem; text-align: left; border-bottom: 1px solid var(--borda); }
+.meta-resumo { padding: 1rem 0; border-bottom: 1px solid var(--borda); }
+.meta-resumo:last-child { border: 0; }
+.conquistas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; }
+.conquista { border: 1px solid var(--borda); }
+.conquista--desbloqueada, .treino--proximo { border: 1px solid var(--verde-forte); }
+.conquista__estado { font-weight: 600; color: var(--texto-suave); }
+.conquista--desbloqueada .conquista__estado { color: var(--verde-forte); }
+.conquista:not(.conquista--desbloqueada) .metrica__icone { background: var(--fundo); color: var(--texto-suave); }
+.graficos-progresso { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.graficos-progresso .grafico { min-width: 0; }
+.modalidade { display: grid; grid-template-columns: minmax(100px, 1fr) 3fr auto; gap: 1rem; align-items: center; margin: 1rem 0; }
+.modalidade .barra { margin: 0; }
+.modalidade strong { overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .graficos-progresso { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .modalidade { grid-template-columns: 1fr auto; } .modalidade .barra { grid-row: 2; grid-column: 1 / -1; } }
+.treino-descricao { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.9rem; }
+.atividade__info, .meta-resumo, .conquista, .mini__valor { overflow-wrap: anywhere; }
+.campo textarea { width: 100%; padding: 0.8rem 1rem; font: inherit; color: var(--texto); background: #fbfcfd; border: 1.5px solid var(--borda); border-radius: 12px; resize: vertical; }
+.campo textarea:focus { outline: 2px solid var(--verde); }
+.sino { display: inline-flex; align-items: center; gap: 0.3rem; }
+@media (max-width: 560px) {
+    .atividades__topo, .grafico__cabecalho { flex-wrap: wrap; }
+    .atividade-linha__info { min-width: 0; flex-basis: 60%; }
 }

@@ -1,0 +1,10 @@
+<section class="cartao secao-acompanhamento" id="alertas">
+    <div class="atividades__cabecalho"><h2>Alertas e lembretes</h2>{% if pagina_ativa != 'alertas' %}<a href="{{ url_for('alertas') }}">Ver todos ({{ alertas|length }})</a>{% endif %}</div>
+    {% if not agenda_disponivel %}<p class="aviso">Não foi possível consultar os lembretes de treinos. {{ erro_agenda }}</p>{% endif %}
+    {% for alerta in (alertas[:3] if pagina_ativa == 'dashboard' else alertas) %}
+        <div class="atividade">
+            <span class="atividade__icone"><i class="fa-solid fa-bell"></i></span>
+            <div class="atividade__info"><p>{{ alerta.mensagem }}</p><a href="{{ url_for(alerta.destino) }}">Ver detalhes</a></div>
+        </div>
+    {% else %}<p class="mini__apoio">Nenhum lembrete entre os dados consultados.</p>{% endfor %}
+</section>

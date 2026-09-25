@@ -1,0 +1,57 @@
+<section class="cartao timer-cartao" id="cronometro"
+         data-url="{{ url_for('atividade_concluir_timer') }}" data-csrf="{{ csrf_token }}"
+         data-usuario="{{ session.id_usuario }}">
+    <div class="timer-cartao__cabecalho">
+        <span class="atividade__icone"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i></span>
+        <div><h2 class="cartao__titulo">Seu tempo em movimento</h2>
+            <p class="timer-cartao__legenda">Escolha um treino da Agenda e registre sua sessão ao finalizar.</p></div>
+    </div>
+    <div class="timer-cartao__corpo" id="timerFormulario">
+        {% if treinos_disponiveis %}
+        <label for="timerAtividade">Treino</label>
+        <select id="timerAtividade" class="timer-cartao__select">
+            <option value="">Selecione um treino agendado</option>
+            {% for treino in treinos_disponiveis %}<option value="{{ treino.id_agenda }}" data-titulo="{{ treino.titulo }}">{{ treino.titulo }} — {{ treino.quando }} às {{ treino.horario_formatado }}</option>{% endfor %}
+        </select>
+        <button type="button" id="timerBotaoIniciar" class="botao-verde timer-cartao__botao" disabled>Iniciar treino</button>
+        {% else %}
+        <p>{{ 'Agenda indisponível. Tente novamente mais tarde.' if not agenda_disponivel else 'Nenhum treino agendado.' }}</p>
+        <a class="botao-verde timer-cartao__botao" href="{{ url_for('agenda') }}">Agendar treino</a>
+        <a href="{{ url_for('atividade_nova') }}">Registrar atividade realizada</a>
+        {% endif %}
+    </div>
+    <div id="timerRodando" hidden>
+        <p id="timerTipoAtual" class="timer-cartao__tipo-atual"></p>
+        <div class="timer-cartao__relogio" id="timerRelogio" role="timer" aria-label="Tempo de atividade">00:00:00</div>
+        <p id="timerEstado" class="mini__apoio" role="status">Em andamento</p>
+        <div class="timer-acoes">
+            <button type="button" id="timerBotaoPausar" class="timer-secundario">Pausar</button>
+            <button type="button" id="timerBotaoConcluir" class="botao-verde timer-cartao__botao">Finalizar atividade</button>
+            <button type="button" class="timer-secundario" data-cancelar>Cancelar</button>
+        </div>
+    </div>
+    <div id="timerConfirmacao" tabindex="-1" hidden>
+        <h3>Registrar esta atividade?</h3>
+        <p id="timerResumo"></p>
+        <label for="timerModalidade">Tipo de exercício realizado</label>
+        <select id="timerModalidade" class="timer-cartao__select">
+            <option value="">Selecione a modalidade</option>
+            {% for tipo in tipos_exercicio %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
+        </select>
+        <p class="mini__apoio">Confirme a modalidade: o título do treino na Agenda é livre.</p>
+        <p class="mini__apoio">A duração é registrada em minutos inteiros. Mínimo de 30 segundos.</p>
+        <div class="timer-acoes">
+            <button type="button" id="timerBotaoSalvar" class="botao-verde timer-cartao__botao">Confirmar e salvar</button>
+            <button type="button" id="timerBotaoVoltar" class="timer-secundario">Continuar atividade</button>
+            <button type="button" class="timer-secundario" data-cancelar>Cancelar</button>
+        </div>
+    </div>
+    <div id="timerConcluido" class="timer-cartao__concluido" tabindex="-1" role="status" hidden>
+        <p id="timerMensagem"></p>
+        <div id="timerConquistas"></div>
+        <div class="timer-acoes"><button type="button" id="timerBotaoNovo" class="timer-secundario">Nova atividade</button>
+            <a href="{{ url_for('atividades') }}">Ver atividades</a>
+            <a href="{{ url_for('progresso') }}">Ver progresso</a></div>
+    </div>
+    <p class="timer-cartao__erro" id="timerErro" role="alert" hidden></p>
+</section>

@@ -1,0 +1,34 @@
+{% extends "base_dashboard.html" %}
+{% set pagina_ativa = 'alertas' %}
+{% block titulo %}Alertas{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho"><h1>Meus Alertas</h1><p>Notificações das suas atividades, metas e treinos. O histórico mantém a mensagem da data em que o alerta foi gerado.</p></section>
+<section class="cartao secao-acompanhamento" id="alertas">
+    {% if erro_alertas %}<p class="aviso" role="alert">{{ erro_alertas }}</p>
+    {% else %}
+    {% if historico_alertas|rejectattr('lido')|list %}
+    <form method="post" action="{{ url_for('alertas_ler_todas') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="timer-secundario">Marcar todas como lidas</button>
+    </form>
+    {% endif %}
+    {% for alerta in historico_alertas %}
+    <div class="atividade notificacao {{ 'notificacao--lida' if alerta.lido else 'notificacao--nova' }}">
+        <span class="atividade__icone"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+        <div class="atividade__info">
+            <strong>{{ '✓ Lido' if alerta.lido else '● Não lido' }}</strong>
+            <p>{{ alerta.mensagem }}</p>
+            <small>Gerado em: {{ (alerta.data_hora or '')[:10].split('-')|reverse|join('/') }}</small>
+            <a href="{{ url_for(alerta.destino) }}">Ver detalhes</a>
+            {% if not alerta.lido %}
+            <form method="post" action="{{ url_for('alerta_ler', id_alerta=alerta.id_alerta) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="timer-secundario">Marcar como lido</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}<p class="mini__apoio">Nenhum alerta por enquanto.</p>{% endfor %}
+    {% endif %}
+</section>
+{% endblock %}

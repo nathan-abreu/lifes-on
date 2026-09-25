@@ -1,0 +1,38 @@
+{% extends "base_dashboard.html" %}
+{% set pagina_ativa = 'agenda' %}
+{% block titulo %}Agenda{% endblock %}
+{% block conteudo %}
+<section class="atividades__topo">
+    <div class="pagina__cabecalho"><h1>Agenda de Treinos</h1><p>Organize seus próximos passos. Horários de Brasília.</p></div>
+    {% if agenda_disponivel %}<a href="{{ url_for('treino_novo') }}" class="btn btn-preenchido"><i class="fa-solid fa-plus"></i>&nbsp; Agendar treino</a>{% endif %}
+</section>
+{% if not agenda_disponivel %}
+    <div class="aviso" role="alert">Agenda indisponível. {{ erro_agenda }}</div>
+{% else %}
+    {% for passado, titulo in [(false, 'Próximos treinos'), (true, 'Treinos anteriores')] %}
+    <section class="secao-acompanhamento">
+        <h2 class="cartao__titulo">{{ titulo }}</h2>
+        <div class="lista-atividades">
+        {% for treino in treinos if treino.passado == passado %}
+            <article class="cartao atividade-linha {{ 'treino--proximo' if treino.proximo }}">
+                <span class="atividade__icone"><i class="fa-solid fa-calendar-days"></i></span>
+                <div class="atividade-linha__info">
+                    <strong>{{ treino.titulo }}</strong>
+                    <p class="mini__apoio">{{ treino.data_formatada }} às {{ treino.horario_formatado }}{% if treino.proximo %} · Nos próximos 7 dias{% endif %}</p>
+                    {% if treino.descricao %}<p class="treino-descricao">{{ treino.descricao }}</p>{% endif %}
+                </div>
+                <div class="atividade-linha__acoes">
+                    <a href="{{ url_for('treino_editar', id_treino=treino.id_agenda) }}" class="botao-acao" aria-label="Editar {{ treino.titulo }}"><i class="fa-solid fa-pen"></i></a>
+                    <form method="post" action="{{ url_for('treino_excluir', id_treino=treino.id_agenda) }}" onsubmit="return confirm('Excluir este treino?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="botao-acao excluir" aria-label="Excluir {{ treino.titulo }}"><i class="fa-solid fa-trash"></i></button>
+                    </form>
+                </div>
+            </article>
+        {% else %}<div class="cartao estado-vazio"><p>{{ 'Nenhum treino anterior.' if passado else 'Você ainda não tem treinos agendados.' }}</p></div>{% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+    <p class="mini__apoio">Agendar um treino não registra uma atividade realizada. Depois de treinar, <a href="{{ url_for('atividade_nova') }}">registre sua atividade</a> para atualizar seu progresso.</p>
+{% endif %}
+{% endblock %}

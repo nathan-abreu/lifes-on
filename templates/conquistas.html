@@ -1,0 +1,24 @@
+{% extends "base_dashboard.html" %}
+{% set pagina_ativa = 'conquistas' %}
+{% block titulo %}Conquistas{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho"><h1>Minhas Conquistas</h1><p>Seu esforço registrado, uma conquista de cada vez.</p></section>
+{% if erro_conquistas %}<div class="aviso" role="alert">Conquistas indisponíveis. {{ erro_conquistas }}</div>{% else %}
+<p>{{ total_conquistas }} de {{ conquistas|length }} desbloqueadas.</p>
+<div class="conquistas-grid">
+    {% for conquista in conquistas %}
+    <article class="cartao conquista {{ 'conquista--desbloqueada' if conquista.desbloqueada }}">
+        <div class="metrica__icone"><i class="fa-solid {{ 'fa-trophy' if conquista.desbloqueada else 'fa-lock' }}"></i></div>
+        <h2 class="cartao__titulo">{{ conquista.nome }}</h2>
+        <p>{{ conquista.descricao }}</p>
+        <p class="mini__apoio">Condição: {{ conquista.condicao }}</p>
+        <p class="mini__apoio">{{ conquista.progresso }}/{{ conquista.objetivo }} {{ conquista.unidade }}</p>
+        <div class="barra"><div style="width: {{ conquista.percentual }}%"></div></div>
+        <p class="conquista__estado">{{ 'Desbloqueada' if conquista.desbloqueada else 'Bloqueada' }}</p>
+        {% if conquista.desbloqueada %}<p class="mini__apoio">Obtida em: {{ conquista.data_formatada or 'data não informada' }}</p>{% endif %}
+    </article>
+    {% endfor %}
+</div>
+<p class="mini__apoio">As conquistas são desbloqueadas automaticamente. Uma conquista obtida permanece no seu histórico.</p>
+{% endif %}
+{% endblock %}

@@ -37,6 +37,7 @@
                             </a>
                             <form method="post" action="{{ url_for('atividade_excluir', id_atividade=atividade.id_atividade) }}"
                                   onsubmit="return confirm('Tem certeza que deseja excluir esta atividade?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                                 <button type="submit" class="botao-acao excluir" title="Excluir" aria-label="Excluir">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>

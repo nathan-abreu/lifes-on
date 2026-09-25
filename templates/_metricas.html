@@ -1,0 +1,14 @@
+<section class="metricas-grid">
+    {% for icone, valor, unidade, legenda in [
+        ('clock', resumo.minutos_mes if pagina_ativa == 'progresso' else resumo.minutos_semana, 'min', 'Minutos no mês' if pagina_ativa == 'progresso' else 'Minutos nesta semana'),
+        ('dumbbell', resumo.atividades_mes if pagina_ativa == 'progresso' else resumo.total_atividades, '', 'Atividades no mês' if pagina_ativa == 'progresso' else 'Atividades registradas'),
+        ('bullseye', resumo.melhor_sequencia if pagina_ativa == 'progresso' else resumo.metas_concluidas, 'dias' if pagina_ativa == 'progresso' else '', 'Melhor sequência' if pagina_ativa == 'progresso' else 'Metas concluídas'),
+        ('fire', resumo.sequencia, 'dias', 'Sequência ativa')
+    ] %}
+    <article class="cartao">
+        <div class="metrica__icone"><i class="fa-solid fa-{{ icone }}"></i></div>
+        <div class="metrica__valor">{{ valor }} <small>{{ unidade }}</small></div>
+        <p class="metrica__legenda">{{ legenda }}</p>
+    </article>
+    {% endfor %}
+</section>

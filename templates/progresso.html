@@ -1,0 +1,50 @@
+{% extends "base_dashboard.html" %}
+{% set pagina_ativa = 'progresso' %}
+{% block titulo %}Progresso{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho">
+    <h1>Meu Progresso</h1>
+    <p>Cada atividade registrada conta como uma sessão realizada.</p>
+</section>
+{% include '_metricas.html' %}
+<section class="graficos-progresso secao-acompanhamento">
+    {% include '_grafico_semanal.html' %}
+    <article class="cartao grafico">
+        <div class="grafico__cabecalho"><h2>Evolução mensal</h2><span>{{ resumo.mes_referencia }} · Atividades por semana</span></div>
+        <p class="mini__apoio">Semanas de segunda a domingo, considerando somente os dias deste mês.</p>
+        {% if not resumo.atividades_mes %}<p class="mini__apoio">Nenhuma atividade registrada neste mês.</p>{% endif %}
+        <div class="grafico-container"><canvas id="graficoMensal" role="img" aria-label="Atividades por semana no mês atual"></canvas></div>
+        <script id="dadosMensais" type="application/json">{{ resumo.grafico_mensal|tojson }}</script>
+        <details class="grafico-tabela">
+            <summary>Ver dados mensais</summary>
+            <table><thead><tr><th>Período</th><th>Atividades</th><th>Minutos</th></tr></thead>
+            <tbody>{% for periodo in resumo.grafico_mensal.labels %}<tr><td>{{ periodo }}</td><td>{{ resumo.grafico_mensal.atividades[loop.index0] }}</td><td>{{ resumo.grafico_mensal.minutos[loop.index0] }}</td></tr>{% endfor %}</tbody></table>
+        </details>
+        <p id="graficoMensalErro" class="mini__apoio" hidden>Não foi possível carregar o gráfico. Consulte a tabela acima.</p>
+    </article>
+</section>
+<section class="cartao secao-acompanhamento">
+    <h2 class="cartao__titulo">Tempo total treinado por tipo</h2>
+    <p class="mini__apoio">Todo o histórico de atividades realizadas.</p>
+    {% for modalidade in resumo.modalidades %}
+        <div class="modalidade"><strong>{{ modalidade.nome }}</strong><div class="barra"><div style="width: {{ modalidade.percentual }}%"></div></div><span>{{ modalidade.minutos }} min</span></div>
+    {% else %}<p class="mini__apoio">Registre sua primeira atividade para acompanhar o tempo por modalidade.</p>{% endfor %}
+</section>
+<section class="cartao secao-acompanhamento">
+    <h2 class="cartao__titulo">Seu desempenho</h2>
+    <p>{{ resumo.minutos_total }} minutos registrados · Média de {{ resumo.media_duracao }} minutos por atividade.</p>
+    <p>Melhor sequência: {{ resumo.melhor_sequencia }} dia(s). A sequência ativa continua se você treinou hoje ou ontem.</p>
+    <p class="mini__apoio">A frequência semanal informada na atividade não multiplica seus registros.</p>
+</section>
+<section class="cartao">
+    <div class="atividades__cabecalho"><h2>Minhas metas</h2><a href="{{ url_for('metas') }}">Gerenciar metas</a></div>
+    {% for meta in metas %}
+        <div class="meta-resumo">
+            <strong>{{ meta.descricao }}</strong>
+            <p class="mini__apoio">{{ meta.progresso }}% · Prazo: {{ meta.prazo_formatado }}</p>
+            <div class="barra"><div style="width: {{ meta.progresso }}%"></div></div>
+        </div>
+    {% else %}<p class="mini__apoio">Nenhuma meta cadastrada.</p>{% endfor %}
+</section>
+{% endblock %}
+{% block scripts_extra %}{% include '_grafico_scripts.html' %}{% endblock %}
