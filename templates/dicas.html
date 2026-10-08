@@ -1,0 +1,13 @@
+﻿{% extends 'base_dashboard.html' %}
+{% set pagina_ativa = 'dicas' %}
+{% block titulo %}Dicas{% endblock %}
+{% block conteudo %}
+<section class="dicas-hero"><span class="dicas-kicker">CUIDADO QUE VIRA ROTINA</span><h1>Pequenos passos.<br>Mais bem-estar.</h1><p>Ideias práticas para movimento, descanso e hábitos possíveis.</p><span class="dicas-hero-icone" aria-hidden="true">✦</span></section>
+<form class="cartao dicas-filtros" method="get">
+ <div class="campo"><label for="pesquisaDicas">O que você quer aprender?</label><input id="pesquisaDicas" name="q" value="{{ termo }}" maxlength="120" placeholder="Pesquisar dicas"></div>
+ <div class="campo"><label for="categoriaDicas">Categoria</label><select id="categoriaDicas" name="categoria"><option value="">Todas as categorias</option>{% for item in categorias %}<option {{ 'selected' if categoria == item }}>{{ item }}</option>{% endfor %}</select></div>
+ <button class="botao-verde" type="submit">Pesquisar</button><a href="{{ url_for('dicas') }}">Limpar</a>
+</form>
+<p class="mini__apoio">{{ dicas|length }} dica(s) encontrada(s). Conteúdo educativo geral, sem orientação médica individual.</p>
+<div class="dicas-grid">{% for dica in dicas %}<article class="cartao dica-card"><span class="dica-categoria">{{ dica.categoria or 'Hábitos saudáveis' }}</span><span class="dica-simbolo" aria-hidden="true">{% if dica.categoria == 'Sono' %}☾{% elif dica.categoria == 'Hidratação' %}◉{% elif dica.categoria == 'Recuperação' %}♡{% else %}✦{% endif %}</span><h2>{{ dica.titulo }}</h2><p>{{ (dica.descricao or '')|truncate(155) }}</p><a href="{{ url_for('dica_detalhe', id_dica=dica.id_dica) }}">Ler dica <span aria-hidden="true">→</span></a></article>{% else %}<div class="cartao estado-vazio"><h2>Nenhuma dica encontrada</h2><p>Tente outra pesquisa ou remova os filtros. Se o catálogo ainda estiver vazio, ele precisa ser publicado no banco.</p></div>{% endfor %}</div>
+{% endblock %}

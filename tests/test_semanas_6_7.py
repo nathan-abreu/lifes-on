@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import unittest
+from uuid import uuid4
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -38,12 +39,18 @@ def atividade(id_atividade=1, usuario=1, dia=HOJE, minutos=30):
 
 class BancoTeste:
     def __init__(self):
-        self.dados = {t: [] for t in ("usuarios", "atividades", "metas", "agenda", "dicas", "conquistas", "usuario_conquista", "alertas")}
+        self.dados = {t: [] for t in ("usuarios", "atividades", "metas", "agenda", "dicas", "conquistas", "usuario_conquista", "alertas", "recompensas_xp")}
         self.dados["conquistas"] = [{"id_conquista": i, "nome": nome, "descricao": descricao, "pontos": 0}
                                    for i, (nome, descricao, _, _, _) in enumerate(REGRAS_CONQUISTAS, 1)]
         self.consultas = []
         self.ausentes = set()
         self.colunas_ausentes = set()
+
+    def premiar(self, usuario, chave, motivo, xp):
+        livro = self.dados['recompensas_xp']
+        if not any(r['id_usuario'] == usuario and r['chave_evento'] == chave for r in livro):
+            livro.append(dict(id_recompensa=len(livro)+1, id_usuario=usuario,
+                              chave_evento=chave, motivo=motivo, xp=xp, criado_em=AGORA.isoformat()))
 
     def table(self, tabela):
         return ConsultaTeste(self, tabela)
@@ -98,6 +105,17 @@ class ConsultaTeste:
         tabela = self.banco.dados[self.tabela]
         selecionadas = [r for r in tabela if all(r.get(k) == v for k, v in self.filtros)]
         if self.operacao == "insert":
+            if self.tabela == 'atividades':
+                chave_evento = 'atividade:' + self.payload['chave_registro']
+                if any(r['id_usuario']==self.payload['id_usuario'] and r['chave_evento']==chave_evento
+                       for r in self.banco.dados['recompensas_xp']):
+                    return SimpleNamespace(data=[])
+                agenda = next((r for r in self.banco.dados['agenda'] if r['id_agenda']==self.payload.get('id_agenda')
+                               and r['id_usuario']==self.payload['id_usuario']), None)
+                if agenda and agenda.get('realizado_em'):
+                    return SimpleNamespace(data=[])
+                self.banco.premiar(self.payload['id_usuario'], chave_evento, 'Atividade concluída', 20)
+                if agenda: agenda['realizado_em']=AGORA.isoformat()
             chaves = {"usuarios": "id_usuario", "atividades": "id_atividade", "metas": "id_meta", "agenda": "id_agenda"}
             chave = chaves[self.tabela]
             self.payload[chave] = max((r[chave] for r in tabela), default=0) + 1
@@ -111,8 +129,13 @@ class ConsultaTeste:
                         registro["id_alerta"] = max((r["id_alerta"] for r in tabela), default=0) + 1
                     tabela.append(registro)
                     selecionadas.append(registro)
+                    if self.tabela == 'usuario_conquista':
+                        self.banco.premiar(registro['id_usuario'], 'conquista:'+str(registro['id_conquista']),
+                                          'Conquista desbloqueada',30)
         elif self.operacao == "update":
             for linha in selecionadas:
+                if self.tabela=='metas' and self.payload.get('progresso')==100 and linha['progresso']<100:
+                    self.banco.premiar(linha['id_usuario'], 'meta:'+str(linha['id_meta']), 'Meta concluída',50)
                 linha.update(self.payload)
         elif self.operacao == "delete":
             for linha in selecionadas:
@@ -241,7 +264,7 @@ class RotasTest(unittest.TestCase):
             sessao.update(id_usuario=usuario, nome=f"Pessoa {usuario}", csrf_token="token-teste")
 
     def post(self, caminho, dados=None, **kwargs):
-        return self.client.post(caminho, data={"csrf_token": "token-teste", **(dados or {})}, **kwargs)
+        return self.client.post(caminho, data={"csrf_token": "token-teste", "chave_registro": str(uuid4()), **(dados or {})}, **kwargs)
 
     def dados_treino(self):
         return {"titulo": "Treino real", "descricao": "Alongamento", "data": "2026-09-25", "horario": "18:30"}
@@ -398,7 +421,7 @@ class RotasTest(unittest.TestCase):
 
     def test_timer_agenda_valida_dono_e_preserva_planejamento(self):
         self.post("/agenda/novo", self.dados_treino())
-        payload = {"id_agenda": 1, "tipo_exercicio": "Corrida", "segundos_decorridos": 1920}
+        payload = {"chave_registro": str(uuid4()), "id_agenda": 1, "tipo_exercicio": "Corrida", "segundos_decorridos": 1920}
         headers = {"X-CSRF-Token": "token-teste"}
         self.entrar(2)
         self.assertEqual(self.client.post("/atividades/concluir_timer", json=payload, headers=headers).status_code, 404)
@@ -423,7 +446,7 @@ class RotasTest(unittest.TestCase):
                                       "prazo": "2026-09-25", "progresso": 25}]
         headers = {"X-CSRF-Token": "token-teste"}
         resposta = self.client.post("/atividades/concluir_timer", json={
-            "tipo_exercicio": "Corrida", "segundos_decorridos": 150, "id_usuario": 2}, headers=headers)
+            "chave_registro": str(uuid4()), "tipo_exercicio": "Corrida", "segundos_decorridos": 150, "id_usuario": 2}, headers=headers)
         self.assertEqual(resposta.status_code, 200)
         self.assertEqual(resposta.json["duracao"], 3)
         self.assertEqual([c["nome"] for c in resposta.json["novas_conquistas"]], ["Primeiro passo"])
@@ -434,7 +457,7 @@ class RotasTest(unittest.TestCase):
             dados = json.loads(re.search(r'<script id="dadosProgresso" type="application/json">(.*?)</script>', html, re.S).group(1))
             self.assertEqual(sum(dados["minutos"]), 3)
         segunda = self.client.post("/atividades/concluir_timer", json={
-            "tipo_exercicio": "Yoga", "segundos_decorridos": 30}, headers=headers)
+            "chave_registro": str(uuid4()), "tipo_exercicio": "Yoga", "segundos_decorridos": 30}, headers=headers)
         self.assertEqual(segunda.json["duracao"], 1)
         self.assertEqual(segunda.json["novas_conquistas"], [])
         self.entrar(2)
@@ -457,7 +480,7 @@ class RotasTest(unittest.TestCase):
         self.assertIn("Desbloqueada", self.client.get("/conquistas").get_data(as_text=True))
         self.assertEqual(self.post("/atividades/editar/1", {"tipo_exercicio": "Yoga", "duracao": 40, "frequencia": 2}).status_code, 302)
         headers = {"X-CSRF-Token": "token-teste"}
-        resposta = self.client.post("/atividades/concluir_timer", json={"tipo_exercicio": "Corrida", "segundos_decorridos": 90}, headers=headers)
+        resposta = self.client.post("/atividades/concluir_timer", json={"chave_registro": str(uuid4()), "tipo_exercicio": "Corrida", "segundos_decorridos": 90}, headers=headers)
         self.assertTrue(resposta.json["registrado"])
         self.assertEqual(len(self.banco.dados["atividades"]), 2)
         resposta = self.client.post("/atividades/concluir_timer", json={"tipo_exercicio": "Corrida", "segundos_decorridos": 29}, headers=headers)
@@ -630,15 +653,15 @@ class RotasTest(unittest.TestCase):
         self.client.get("/conquistas")
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 1)
 
-    def test_dashboard_meta_real_conquista_e_sem_xp(self):
+    def test_dashboard_meta_real_conquista_e_xp_confirmado(self):
         self.banco.dados["atividades"] = [atividade()]
         self.banco.dados["metas"] = [{"id_meta": 1, "id_usuario": 1, "descricao": "Minha meta real", "prazo": "2026-09-25", "progresso": 70}]
         html = self.client.get("/dashboard").get_data(as_text=True)
         self.assertIn("Minha meta real", html)
         self.assertIn("70%", html)
         self.assertIn("Mais recente: Primeiro passo", html)
-        for futuro in ("XP", "Pontuação", "Nível", "> Dicas"):
-            self.assertNotIn(futuro, html)
+        self.assertIn('30 XP', html)
+        self.assertIn('Nível 1', html)
 
     def test_grafico_mensal_json_sem_dados_alheios(self):
         self.banco.dados["atividades"] = [atividade(), atividade(2, usuario=2, minutos=900)]

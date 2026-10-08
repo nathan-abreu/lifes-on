@@ -8,6 +8,7 @@
     const erro = el('timerErro');
     const salvar = el('timerBotaoSalvar');
     const chave = 'lifes-on-atividade-' + raiz.dataset.usuario;
+    let chaveRegistro = null;
     let acumulado = 0, inicio = null, intervalo = null, segundos = 0, tipo = '', treinoId = null, enviando = false;
 
     function estado(id) {
@@ -15,7 +16,7 @@
             el(nome).hidden = nome !== id;
         });
     }
-    function avisar(texto) { erro.textContent = texto; erro.hidden = false; }
+    function avisar(texto) { window.LifesUI?.som('erro'); erro.textContent = texto; erro.hidden = false; }
     function tempo() { return acumulado + (inicio === null ? 0 : performance.now() - inicio); }
     function formatar(total) {
         return [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60]
@@ -44,7 +45,12 @@
         estado('timerFormulario'); selecao.focus();
     }
     function mostrarSucesso(dados) {
+        if (dados.recompensa) {
+            window.LifesUI?.som('treino', true);
+            setTimeout(() => window.LifesUI?.recompensar(dados.recompensa), 400);
+        }
         el('timerMensagem').textContent = 'Atividade concluída! ' + (dados.titulo_treino || dados.tipo_exercicio) + ' • ' + dados.duracao + (dados.duracao === 1 ? ' minuto' : ' minutos');
+        if (dados.duplicado) el('timerMensagem').textContent = 'Treino já registrado; nenhum XP adicional.';
         const lista = el('timerConquistas'); lista.replaceChildren();
         (dados.novas_conquistas || []).forEach(conquista => {
             const item = document.createElement('p');
@@ -57,6 +63,7 @@
     function iniciarTreino() {
         if (!selecao || !selecao.value || el('timerFormulario').hidden) return;
         treinoId = Number(selecao.value);
+        chaveRegistro = crypto.randomUUID();
         tipo = selecao.selectedOptions[0].dataset.titulo; acumulado = 0; erro.hidden = true;
         el('timerModalidade').value = '';
         el('timerTipoAtual').textContent = tipo; continuar(); el('timerBotaoPausar').focus();
@@ -65,8 +72,9 @@
         selecao.addEventListener('change', () => { el('timerBotaoIniciar').disabled = !selecao.value; });
         el('timerBotaoIniciar').addEventListener('click', iniciarTreino);
     }
-    document.querySelectorAll('[data-iniciar-treino]').forEach(botao => {
-        botao.addEventListener('click', () => {
+    document.addEventListener('click', evento => {
+            const botao = evento.target.closest('[data-iniciar-treino]');
+            if (!botao) return;
             if (!selecao || el('timerFormulario').hidden) {
                 raiz.scrollIntoView();
                 return;
@@ -74,7 +82,6 @@
             selecao.value = botao.dataset.iniciarTreino;
             el('timerBotaoIniciar').disabled = !selecao.value;
             iniciarTreino();
-        });
     });
     el('timerBotaoPausar').addEventListener('click', () => { inicio === null ? continuar() : pausar(); });
     el('timerBotaoConcluir').addEventListener('click', () => {
@@ -98,7 +105,7 @@
             const resposta = await fetch(raiz.dataset.url, {
                 method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': raiz.dataset.csrf },
-                body: JSON.stringify({ id_agenda: treinoId, tipo_exercicio: el('timerModalidade').value, segundos_decorridos: segundos })
+                body: JSON.stringify({ chave_registro: chaveRegistro, id_agenda: treinoId, tipo_exercicio: el('timerModalidade').value, segundos_decorridos: segundos })
             });
             const dados = await resposta.json();
             if (!resposta.ok || !dados.registrado) {
@@ -108,16 +115,32 @@
                 avisar(dados.erro || 'Não foi possível registrar. Atualize a página e confira sua sessão.');
                 return;
             }
-            // O resumo é relido do Flask/Supabase; não incrementamos gráficos artificialmente.
+            // Celebra na página já desbloqueada para áudio, e relê os indicadores reais.
+            mostrarSucesso(dados);
             try {
-                sessionStorage.setItem(chave, JSON.stringify(dados));
-                window.location.reload();
+                const pagina = await fetch(window.location.href, {credentials:'same-origin'});
+                if (!pagina.ok) throw new Error('resumo indisponível');
+                const documento = new DOMParser().parseFromString(await pagina.text(), 'text/html');
+                ['.xp-card','.metricas-grid','.mini-cards','.atividades','#alertas'].forEach(seletor => {
+                    const atual=document.querySelector(seletor), novo=documento.querySelector(seletor);
+                    if(atual && novo) atual.replaceWith(novo);
+                });
+                const serie=documento.getElementById('dadosProgresso');
+                if(serie && window.Chart) {
+                    const grafico=Chart.getChart('graficoProgresso');
+                    if(grafico) {const d=JSON.parse(serie.textContent);grafico.data.labels=d.labels;grafico.data.datasets[0].data=d.minutos;grafico.update();}
+                }
+                const sino=document.querySelector('.sino'), novoSino=documento.querySelector('.sino');
+                if(sino && novoSino) sino.replaceWith(novoSino);
+                const opcao=selecao?.querySelector('option[value="'+treinoId+'"]');
+                if(opcao) opcao.remove();
+                if(selecao) {selecao.value='';el('timerBotaoIniciar').disabled=true;}
             } catch (_) {
-                mostrarSucesso(dados);
-                setTimeout(() => window.location.reload(), 3500);
+                avisar('Atividade salva. Não foi possível atualizar o resumo; recarregue a página para consultar os indicadores.');
             }
         } catch (_) {
-            avisar('Não foi possível confirmar o salvamento. Atualize a página e confira suas atividades antes de registrar novamente.');
+            el('timerConfirmacao').querySelectorAll('button').forEach(b => { b.disabled = false; });
+            avisar('Conexão interrompida. Tente confirmar novamente: a mesma chave impede duplicação.');
         } finally {
             enviando = false; salvar.textContent = 'Confirmar e salvar';
         }

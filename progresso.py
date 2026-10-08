@@ -131,7 +131,7 @@ def preparar_treinos(treinos, agora):
         item["hora_formulario"] = instante.strftime("%H:%M")
         item["instante"] = instante
         item["passado"] = instante < agora
-        item["proximo"] = agora <= instante <= agora + timedelta(days=7)
+        item["proximo"] = not item.get("realizado_em") and agora <= instante <= agora + timedelta(days=7)
         item["data_formatada"] = instante.strftime("%d/%m/%Y")
         item["horario_formatado"] = instante.strftime("%H:%M")
         resultado.append(item)
@@ -167,7 +167,7 @@ def gerar_alertas(resumo, metas, treinos, agora):
     alertas_treinos = []
     for treino in treinos:
         dias = (treino["instante"].date() - hoje).days
-        if not treino["passado"] and dias in (0, 1):
+        if not treino["passado"] and not treino.get("realizado_em") and dias in (0, 1):
             quando = "hoje" if dias == 0 else "amanhã"
             alertas_treinos.append({"chave_evento": f"treino:{treino['id_agenda']}:{treino['instante'].isoformat()}", "mensagem": f'Treino "{treino["titulo"]}" agendado para {quando}, às {treino["horario_formatado"]}.', "destino": "agenda"})
     return alertas_treinos + alertas

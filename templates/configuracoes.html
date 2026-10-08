@@ -1,0 +1,7 @@
+﻿{% extends 'base_dashboard.html' %}
+{% set pagina_ativa = 'configuracoes' %}
+{% block titulo %}Configurações{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho"><h1>Do seu jeito</h1><p>Uma experiência confortável, com ou sem som.</p></section>
+<section class="cartao dica-detalhe"><h2>Efeitos sonoros</h2><div class="campo"><label><input id="audioAtivo" type="checkbox"> Ativar sons suaves de interface e recompensas</label></div><div class="campo"><label for="audioVolume">Volume <span id="audioValor"></span></label><input id="audioVolume" type="range" min="0" max="100" step="5"></div><button id="audioTestar" type="button" class="botao-verde">Ouvir exemplo</button><p class="mini__apoio secao-acompanhamento">Preferências salvas neste navegador para seu usuário. Todas as confirmações também aparecem em texto. Animações respeitam a preferência de movimento reduzido do sistema.</p></section>
+{% endblock %}

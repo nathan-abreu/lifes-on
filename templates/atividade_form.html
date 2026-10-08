@@ -14,6 +14,7 @@
             <!-- Coluna esquerda: formulario -->
             <form class="cartao" method="post" id="formAtividade"
                   action="{{ url_for('atividade_editar', id_atividade=atividade.id_atividade) if modo == 'editar' else url_for('atividade_nova') }}">
+                <input type="hidden" name="chave_registro" value="{{ chave_registro }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <h2 class="cartao__titulo">Detalhes da Atividade</h2>
@@ -30,7 +31,7 @@
 
                 <div class="campo">
                     <label for="duracao">Duração (minutos)</label>
-                    <input type="number" id="duracao" name="duracao" min="1" step="1" required
+                    <input type="number" id="duracao" name="duracao" min="1" max="1440" step="1" required
                            value="{{ atividade.duracao if atividade else '' }}">
                 </div>
 
@@ -38,7 +39,7 @@
                     <label>Frequência (vezes por semana)</label>
                     <div class="frequencia-grupo" id="frequenciaGrupo">
                         {% for n in range(1, 8) %}
-                            <button type="button" class="frequencia-botao {{ 'selecionado' if atividade and atividade.frequencia == n }}" data-valor="{{ n }}">{{ n }}</button>
+                            <button type="button" class="frequencia-botao {{ 'selecionado' if atividade and atividade.frequencia|int == n }}" data-valor="{{ n }}" aria-pressed="{{ 'true' if atividade and atividade.frequencia|int == n else 'false' }}">{{ n }}</button>
                         {% endfor %}
                     </div>
                     <input type="hidden" id="frequencia" name="frequencia" value="{{ atividade.frequencia if atividade else '' }}" required>
@@ -65,7 +66,7 @@
                         <span class="previa__valor" id="previaFrequencia">—</span>
                     </div>
                     <div class="previa__linha">
-                        <span class="previa__rotulo">XP estimado</span>
+                        <span class="previa__rotulo">Recompensa por registro</span>
                         <span class="previa__valor destaque" id="previaXp">0 XP</span>
                     </div>
                 </div>
@@ -104,8 +105,8 @@
             var frequencia = parseInt(inputFrequencia.value, 10);
             previaFrequencia.textContent = frequencia > 0 ? frequencia + 'x por semana' : '—';
 
-            var xp = duracao > 0 ? duracao * 2 : 0;
-            previaXp.textContent = xp + ' XP';
+            var xp = {{ 0 if modo == 'editar' else 20 }};
+            previaXp.textContent = xp ? '+20 XP após salvar' : 'Edição não concede XP';
         }
 
         selectExercicio.addEventListener('change', atualizarPrevia);
@@ -113,8 +114,9 @@
 
         botoesFrequencia.forEach(function (botao) {
             botao.addEventListener('click', function () {
-                botoesFrequencia.forEach(function (b) { b.classList.remove('selecionado'); });
+                botoesFrequencia.forEach(function (b) { b.classList.remove('selecionado'); b.setAttribute('aria-pressed','false'); });
                 botao.classList.add('selecionado');
+                botao.setAttribute('aria-pressed','true');
                 inputFrequencia.value = botao.dataset.valor;
                 atualizarPrevia();
             });

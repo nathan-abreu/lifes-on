@@ -1,0 +1,7 @@
+﻿{% extends 'base_dashboard.html' %}
+{% set pagina_ativa = 'dicas' %}
+{% block titulo %}{{ dica.titulo }}{% endblock %}
+{% block conteudo %}
+<a href="{{ url_for('dicas') }}">← Todas as dicas</a>
+<article class="cartao dica-detalhe secao-acompanhamento"><span class="dica-categoria">{{ dica.categoria or 'Hábitos saudáveis' }}</span><h1>{{ dica.titulo }}</h1><p class="dica-conteudo">{{ dica.descricao or 'Conteúdo ainda não publicado.' }}</p>{% if dica.fonte_segura %}<a href="{{ dica.fonte_segura }}" target="_blank" rel="noopener noreferrer">Consultar fonte educativa ↗</a>{% endif %}<p class="mini__apoio secao-acompanhamento">Informação geral para apoiar hábitos saudáveis. Adapte à sua realidade e procure orientação profissional em caso de sintomas ou dúvidas sobre sua saúde.</p></article>
+{% endblock %}

@@ -1,5 +1,7 @@
 import os
 import secrets
+from uuid import uuid4
+from recompensas import validar_chave, resumir_recompensas
 from datetime import date, datetime, time, timezone
 from functools import wraps
 
@@ -41,7 +43,9 @@ app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
 def contexto_formularios():
     if "csrf_token" not in session:
         session["csrf_token"] = secrets.token_hex(32)
-    contexto = {"csrf_token": session["csrf_token"]}
+    contexto = {"csrf_token": session["csrf_token"], "chave_registro": str(uuid4()),
+                "feedback_recompensa": session.pop("feedback_recompensa", None),
+                "data_hoje_iso": agora_local().date().isoformat()}
     if "id_usuario" in session:
         try:
             contexto["alertas_nao_lidos"] = sum(a.get("status") != "lido" for a in listar_do_usuario("alertas", ["id_alerta"]))
@@ -73,7 +77,7 @@ def banco_indisponivel(erro):
 def mensagem_erro_banco(erro):
     codigo = getattr(erro, "code", "")
     if codigo in ("42P01", "PGRST205", "PGRST204", "42703"):
-        return "A estrutura do banco precisa ser atualizada. Solicite a aplicação da migração das semanas 6 e 7."
+        return "A estrutura do banco precisa ser atualizada. Confira cada migração do projeto, incluindo semanas_8_9.sql."
     if codigo in ("42501", "PGRST301", "PGRST302", "PGRST303", "401", "403"):
         return "O banco recusou o acesso. Confira a chave e as permissões configuradas no servidor."
     return "Não foi possível acessar o banco. Confira a conexão e tente novamente."
@@ -94,14 +98,20 @@ def listar_do_usuario(tabela, ordem, campos="*"):
 
 
 def consultar_agenda():
-    return listar_do_usuario("agenda", ["horario", "id_agenda"], "id_agenda,id_usuario,horario,lembrete,titulo")
+    return listar_do_usuario("agenda", ["horario", "id_agenda"], "*")
 
 
 def sincronizar_conquistas(resumo, novas_obtidas=None):
     """Registra obtenções uma única vez; nunca revoga uma conquista obtida."""
     regras = {c["nome"]: c for c in calcular_conquistas(resumo)}
     catalogo = supabase.table("conquistas").select("id_conquista,nome,descricao").order("id_conquista").execute().data or []
-    catalogo = [c for c in catalogo if c["nome"] in regras]
+    nomes = set()
+    catalogo_unico = []
+    for c in catalogo:
+        if c["nome"] in regras and c["nome"] not in nomes:
+            catalogo_unico.append(c)
+            nomes.add(c["nome"])
+    catalogo = catalogo_unico
     obtidas = listar_do_usuario("usuario_conquista", ["id_conquista"])
     ids_obtidos = {c["id_conquista"] for c in obtidas}
     novas = [
@@ -116,7 +126,7 @@ def sincronizar_conquistas(resumo, novas_obtidas=None):
         ).execute().data or []
         if novas_obtidas is not None:
             ids_inseridos = {c["id_conquista"] for c in inseridas}
-            novas_obtidas.extend({"nome": c["nome"], "descricao": c["descricao"]}
+            novas_obtidas.extend({"id_conquista": c["id_conquista"], "nome": c["nome"], "descricao": c["descricao"]}
                                  for c in catalogo if c["id_conquista"] in ids_inseridos)
         obtidas = listar_do_usuario("usuario_conquista", ["id_conquista"])
     datas = {c["id_conquista"]: c["data_obtencao"] for c in obtidas}
@@ -177,7 +187,7 @@ def dados_acompanhamento():
     for meta in metas:
         meta["progresso"] = max(0, min(100, int(meta.get("progresso") or 0)))
         meta["prazo_formatado"] = formatar_data_br(meta["prazo"])
-    proximos = [t for t in treinos if not t["passado"]]
+    proximos = [t for t in treinos if not t["passado"] and not t.get("realizado_em")]
     gerados = gerar_alertas(resumo, metas, treinos, agora)
     erro_alertas = None
     historico_alertas = []
@@ -190,7 +200,7 @@ def dados_acompanhamento():
         erro_alertas = "Não foi possível carregar o estado de leitura. Confira a migração alertas_leitura.sql e o acesso à tabela alertas."
         app.logger.warning("Alertas indisponíveis (%s)", getattr(erro, "code", "rede"))
     return {
-        "nome": session["nome"], "resumo": resumo, "metas": metas,
+        "nome": session["nome"], "xp": consultar_xp(), "resumo": resumo, "metas": metas,
         "atividades_registradas": list(reversed(atividades)),
         "treinos": treinos, "agenda_disponivel": erro_agenda is None, "erro_agenda": erro_agenda,
         "proximo_treino": proximos[0] if proximos else None,
@@ -204,6 +214,58 @@ def dados_acompanhamento():
     }
 
 
+def consultar_xp():
+    try:
+        registros = listar_do_usuario("recompensas_xp", ["id_recompensa"])
+        return {**resumir_recompensas(registros), "historico": list(reversed(registros)), "disponivel": True}
+    except (APIError, HTTPError):
+        return {"disponivel": False}
+
+
+def preparar_recompensa(antes, novas=None, evento=None):
+    depois = consultar_xp()
+    if not antes.get("disponivel") or not depois.get("disponivel"):
+        return None
+    ids = {r["id_recompensa"] for r in antes["historico"]}
+    novas_linhas = [r for r in depois["historico"] if r["id_recompensa"] not in ids]
+    principal = next((r for r in novas_linhas if r["chave_evento"] == evento), None)
+    chaves_conquistas = {"conquista:" + str(c["id_conquista"]) for c in (novas or [])}
+    recebidas = [r for r in novas_linhas if r["chave_evento"] == evento
+                 or r["chave_evento"] in chaves_conquistas
+                 or (principal and r["chave_evento"] == "sequencia:primeiros-7"
+                     and r["criado_em"] == principal["criado_em"])]
+    if not recebidas:
+        return None
+    return {"xp_recebido": sum(r["xp"] for r in recebidas), "xp": depois["total"],
+            "nivel": depois["nivel"], "subiu_nivel": depois["nivel"] > antes["nivel"],
+            "conquistas": novas or []}
+
+
+def registrar_atividade(tipo, duracao, frequencia, chave, id_agenda=None):
+    if tipo not in TIPOS_EXERCICIO or not 1 <= duracao <= 1440 or not 1 <= frequencia <= 7:
+        raise ValueError("Informe modalidade, duração de 1 a 1440 minutos e frequência de 1 a 7.")
+    chave = validar_chave(chave)
+    antes = consultar_xp()
+    # Sem a estrutura de XP não salva silenciosamente uma atividade sem recompensa.
+    if not antes.get("disponivel"):
+        raise APIError({"code": "PGRST205", "message": "Migração de XP ou acesso pendente"})
+    # O trigger faz a mesma proteção atomicamente, inclusive após exclusão.
+    if any(r["chave_evento"] == "atividade:" + chave for r in antes["historico"]):
+        return False, None, [], False
+    payload = {"tipo_exercicio": tipo, "duracao": duracao, "frequencia": frequencia,
+               "data_registro": datetime.now(timezone.utc).isoformat(),
+               "id_usuario": session["id_usuario"], "chave_registro": chave}
+    if id_agenda is not None:
+        payload["id_agenda"] = id_agenda
+    inseridas = supabase.table("atividades").insert(payload).execute().data or []
+    if not inseridas:
+        return False, None, [], False
+    novas = []
+    sincronizadas = verificar_conquistas_apos_salvar(novas)
+    # Falhar na leitura de feedback não invalida a gravação principal.
+    return True, preparar_recompensa(antes, novas, "atividade:" + chave), novas, sincronizadas
+
+
 def login_obrigatorio(f):
     @wraps(f)
     def decorada(*args, **kwargs):
@@ -211,6 +273,49 @@ def login_obrigatorio(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return decorada
+
+
+@app.route("/pontuacao")
+@login_obrigatorio
+def pontuacao():
+    return render_template("pontuacao.html", nome=session["nome"], xp=consultar_xp())
+
+
+@app.route("/configuracoes")
+@login_obrigatorio
+def configuracoes():
+    return render_template("configuracoes.html", nome=session["nome"])
+
+
+@app.route("/dicas")
+@login_obrigatorio
+def dicas():
+    termo = request.args.get("q", "").strip()[:120]
+    categoria = request.args.get("categoria", "")
+    registros = []
+    while True:
+        lote = supabase.table("dicas").select("*").order("id_dica").range(len(registros), len(registros)+499).execute().data or []
+        registros.extend(lote)
+        if len(lote)<500: break
+    categorias = sorted({d.get("categoria") or "Hábitos saudáveis" for d in registros})
+    filtradas = [d for d in registros if (not categoria or d.get("categoria", "Hábitos saudáveis")==categoria)
+                 and termo.casefold() in (d["titulo"]+" "+(d.get("descricao") or "")).casefold()]
+    return render_template("dicas.html", nome=session["nome"], dicas=filtradas,
+                           categorias=categorias, termo=termo, categoria=categoria)
+
+
+@app.route("/dicas/<int:id_dica>")
+@login_obrigatorio
+def dica_detalhe(id_dica):
+    registros = supabase.table("dicas").select("*").eq("id_dica",id_dica).execute().data
+    if not registros: abort(404)
+    dica = registros[0]
+    # Links editoriais são aceitos apenas dos domínios das fontes verificadas.
+    from urllib.parse import urlparse
+    fonte = dica.get("fonte") or ""
+    url = urlparse(fonte)
+    dica["fonte_segura"] = fonte if url.scheme=="https" and url.hostname in ("www.who.int", "www.cdc.gov") else None
+    return render_template("dica_detalhe.html", nome=session["nome"], dica=dica)
 
 
 @app.route("/")
@@ -290,7 +395,7 @@ def logout():
 def dashboard():
     dados = dados_acompanhamento()
     hoje = agora_local().date()
-    disponiveis = [t for t in dados["treinos"] if t["instante"].date() >= hoje]
+    disponiveis = [t for t in dados["treinos"] if t["instante"].date() >= hoje and not t.get("realizado_em")]
     for treino in disponiveis:
         dias = (treino["instante"].date() - hoje).days
         treino["quando"] = "Hoje" if dias == 0 else "Amanhã" if dias == 1 else treino["data_formatada"]
@@ -435,14 +540,8 @@ TIPOS_EXERCICIO = ["Corrida", "Musculação", "Ciclismo", "Natação", "Yoga", "
 @app.route("/atividades")
 @login_obrigatorio
 def atividades():
-    resposta = (
-        supabase.table("atividades")
-        .select("*")
-        .eq("id_usuario", session["id_usuario"])
-        .order("data_registro", desc=True)
-        .execute()
-    )
-    return render_template("atividades.html", nome=session["nome"], atividades=resposta.data)
+    registros = listar_do_usuario("atividades", ["data_registro", "id_atividade"])
+    return render_template("atividades.html", nome=session["nome"], atividades=list(reversed(registros)))
 
 
 @app.route("/atividades/nova", methods=["GET", "POST"])
@@ -464,23 +563,31 @@ def atividade_nova():
             flash("Duração e frequência devem ser números.")
             return redirect(url_for("atividade_nova"))
 
-        if duracao <= 0:
-            flash("A duração precisa ser maior que zero.")
+        if tipo_exercicio not in TIPOS_EXERCICIO or not 1 <= duracao <= 1440:
+            flash("Informe modalidade válida e duração de 1 a 1440 minutos.")
             return redirect(url_for("atividade_nova"))
 
         if frequencia < 1 or frequencia > 7:
             flash("A frequência deve ser entre 1 e 7 vezes por semana.")
             return redirect(url_for("atividade_nova"))
 
-        supabase.table("atividades").insert({
-            "tipo_exercicio": tipo_exercicio,
-            "duracao": duracao,
-            "frequencia": frequencia,
-            "data_registro": datetime.now(timezone.utc).isoformat(),
-            "id_usuario": session["id_usuario"],
-        }).execute()
-
-        verificar_conquistas_apos_salvar()
+        try:
+            registrado, feedback, _, _ = registrar_atividade(tipo_exercicio, duracao, frequencia,
+                                                         request.form.get("chave_registro"))
+        except ValueError as erro:
+            flash(str(erro))
+            return redirect(url_for("atividade_nova"))
+        except (APIError, HTTPError) as erro:
+            flash("Não foi possível confirmar o registro. " + mensagem_erro_banco(erro) +
+                  " Tente salvar novamente neste formulário; a mesma chave evita duplicação.")
+            return render_template("atividade_form.html", nome=session["nome"], modo="nova",
+                                   atividade=request.form, tipos_exercicio=TIPOS_EXERCICIO,
+                                   chave_registro=request.form.get("chave_registro")), 503
+        if feedback:
+            session["feedback_recompensa"] = feedback
+        if not registrado:
+            flash("Este registro já foi processado. Nenhuma atividade ou XP adicional foi criado.")
+            return redirect(url_for("atividades"))
         flash("Atividade registrada com sucesso!")
         return redirect(url_for("atividades"))
 
@@ -525,8 +632,8 @@ def atividade_editar(id_atividade):
             flash("Duração e frequência devem ser números.")
             return redirect(url_for("atividade_editar", id_atividade=id_atividade))
 
-        if duracao <= 0:
-            flash("A duração precisa ser maior que zero.")
+        if tipo_exercicio not in TIPOS_EXERCICIO or not 1 <= duracao <= 1440:
+            flash("Informe modalidade válida e duração de 1 a 1440 minutos.")
             return redirect(url_for("atividade_editar", id_atividade=id_atividade))
 
         if frequencia < 1 or frequencia > 7:
@@ -583,34 +690,37 @@ def atividade_concluir_timer():
 
     # O título é livre na Agenda; a modalidade é confirmada pelo usuário.
     # Nunca confiar no título/dono enviados pelo navegador.
+    try:
+        validar_chave(dados.get("chave_registro"))
+    except ValueError as erro:
+        return jsonify({"erro": str(erro)}), 400
     titulo_treino = None
     if "id_agenda" in dados:
         if type(dados["id_agenda"]) is not int or dados["id_agenda"] <= 0:
             return jsonify({"erro": "Treino inválido."}), 400
-        treinos = (supabase.table("agenda").select("id_agenda,titulo")
+        treinos = (supabase.table("agenda").select("*")
                    .eq("id_agenda", dados["id_agenda"])
                    .eq("id_usuario", session["id_usuario"]).execute().data)
         if not treinos:
             return jsonify({"erro": "Treino não encontrado na sua agenda. Confira se ele foi excluído."}), 404
         titulo_treino = treinos[0]["titulo"]
+        if treinos[0].get("realizado_em"):
+            return jsonify({"registrado": True, "duplicado": True, "titulo_treino": titulo_treino,
+                            "tipo_exercicio": tipo_exercicio, "duracao": max(1,(segundos_decorridos+30)//60)})
 
     # Minutos inteiros, arredondando meio minuto para cima (igual à confirmação).
     duracao = max(1, (segundos_decorridos + 30) // 60)
 
-    supabase.table("atividades").insert({
-        "tipo_exercicio": tipo_exercicio,
-        "duracao": duracao,
-        "frequencia": 1,
-        "data_registro": datetime.now(timezone.utc).isoformat(),
-        "id_usuario": session["id_usuario"],
-    }).execute()
+    try:
+        registrado, feedback, novas_conquistas, sincronizadas = registrar_atividade(
+            tipo_exercicio, duracao, 1, dados.get("chave_registro"), dados.get("id_agenda"))
+    except ValueError as erro:
+        return jsonify({"erro": str(erro)}), 400
+    return jsonify({"registrado": True, "duplicado": not registrado,
+                    "tipo_exercicio": tipo_exercicio, "duracao": duracao,
+                    "titulo_treino": titulo_treino, "recompensa": feedback,
+                    "conquistas_atualizadas": sincronizadas, "novas_conquistas": novas_conquistas})
 
-    novas_conquistas = []
-    conquistas_atualizadas = verificar_conquistas_apos_salvar(novas_conquistas)
-    return jsonify({"registrado": True, "tipo_exercicio": tipo_exercicio, "duracao": duracao,
-                    "titulo_treino": titulo_treino,
-                    "conquistas_atualizadas": conquistas_atualizadas,
-                    "novas_conquistas": novas_conquistas})
 
 
 def formatar_data_br(data_iso):
@@ -719,13 +829,17 @@ def meta_editar(id_meta):
 
         progresso = max(0, min(100, progresso))
 
+        antes_xp = consultar_xp()
         supabase.table("metas").update({
             "descricao": descricao,
             "prazo": prazo,
             "progresso": progresso,
         }).eq("id_meta", id_meta).eq("id_usuario", session["id_usuario"]).execute()
 
-        verificar_conquistas_apos_salvar()
+        novas = []
+        verificar_conquistas_apos_salvar(novas)
+        feedback = preparar_recompensa(antes_xp, novas, "meta:" + str(id_meta))
+        if feedback: session["feedback_recompensa"] = feedback
         flash("Meta atualizada com sucesso!")
         return redirect(url_for("metas"))
 

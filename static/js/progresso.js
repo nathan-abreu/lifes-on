@@ -23,6 +23,7 @@
             }]
         },
         options: {
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : {duration: 350},
             responsive: true,
             maintainAspectRatio: false,
             scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },

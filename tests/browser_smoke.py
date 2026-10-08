@@ -111,7 +111,7 @@ def executar():
                 page.goto(base + "/dashboard")
                 expect(page.locator(".mini-cards")).to_contain_text("Meta do navegador")
                 expect(page.locator(".mini-cards")).to_contain_text("Treino editado")
-                assert " XP" not in page.locator("body").inner_text()
+                expect(page.locator('.xp-card')).to_contain_text('50 XP')
                 page.clock.install()
                 page.locator("#timerAtividade").select_option("1")
                 page.locator("#timerBotaoIniciar").click()
@@ -137,9 +137,16 @@ def executar():
                 assert banco.dados["atividades"][-1]["id_usuario"] == 1
                 expect(page.locator("#timerConquistas")).to_be_empty()
                 page.wait_for_function("typeof Chart !== 'undefined' && !!Chart.getChart('graficoProgresso')")
-                assert sum(page.evaluate("Chart.getChart('graficoProgresso').data.datasets[0].data")) == 31
+                page.wait_for_function("Chart.getChart('graficoProgresso').data.datasets[0].data.reduce((a,b)=>a+b,0) === 31")
                 page.locator("#timerBotaoNovo").click()
-                page.locator("#timerAtividade").select_option("1")
+                assert page.locator('#timerAtividade option[value="1"]').count() == 0
+                page.goto(base + '/agenda/novo')
+                page.locator('#titulo').fill('Treino para cancelar')
+                page.locator('#data').fill('2026-09-25')
+                page.locator('#horario').fill('19:00')
+                page.get_by_role('button',name='Salvar treino').click()
+                page.goto(base + '/dashboard')
+                page.locator("#timerAtividade").select_option("2")
                 page.locator("#timerBotaoIniciar").click()
                 page.clock.run_for(35000)
                 page.once("dialog", lambda dialog: dialog.accept())
@@ -160,8 +167,7 @@ def executar():
                 page.locator("#sombraMenu").click(position={"x": 380, "y": 400})
                 page.on("dialog", lambda dialog: dialog.accept())
                 page.get_by_role("button", name="Excluir Treino editado").click()
-                expect(page.locator(".treino--proximo")).to_have_count(0)
-                assert not banco.dados["agenda"]
+                assert not any(t['id_agenda']==1 for t in banco.dados['agenda'])
 
                 page.goto(base + "/logout")
                 login(2)

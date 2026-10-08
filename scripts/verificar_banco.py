@@ -24,11 +24,13 @@ def verificar():
     cliente = criar_cliente(url, chave)
     consultas = {
         "alertas": "id_alerta,mensagem,tipo,data_hora,status,id_usuario,chave_evento",
-        "atividades": "id_atividade,id_usuario,tipo_exercicio,duracao,frequencia,data_registro",
+        "atividades": "id_atividade,id_usuario,tipo_exercicio,duracao,frequencia,data_registro,chave_registro,id_agenda",
         "metas": "id_meta,id_usuario,descricao,prazo,progresso",
-        "agenda": "id_agenda,id_usuario,horario,lembrete,titulo",
+        "agenda": "id_agenda,id_usuario,horario,lembrete,titulo,realizado_em",
         "conquistas": "id_conquista,nome,descricao,pontos",
         "usuario_conquista": "id_usuario,id_conquista,data_obtencao",
+        "dicas": "id_dica,titulo,descricao,categoria,fonte",
+        "recompensas_xp": "id_recompensa,id_usuario,chave_evento,motivo,xp,criado_em",
     }
     falhou = False
     for tabela, campos in consultas.items():

@@ -17,7 +17,7 @@
             <article class="cartao atividade-linha {{ 'treino--proximo' if treino.proximo }}">
                 <span class="atividade__icone"><i class="fa-solid fa-calendar-days"></i></span>
                 <div class="atividade-linha__info">
-                    <strong>{{ treino.titulo }}</strong>
+                    <strong>{{ treino.titulo }}</strong>{% if treino.realizado_em %}<span class="selo-realizado">? Realizado</span>{% endif %}
                     <p class="mini__apoio">{{ treino.data_formatada }} às {{ treino.horario_formatado }}{% if treino.proximo %} · Nos próximos 7 dias{% endif %}</p>
                     {% if treino.descricao %}<p class="treino-descricao">{{ treino.descricao }}</p>{% endif %}
                 </div>
