@@ -25,7 +25,7 @@ select s.nome, s.descricao, 0 from (values
     ('Foco Total', 'Realizou dez atividades.'),
     ('Veterano', 'Realizou trinta atividades.')
 ) as s(nome, descricao)
-where not exists (select 1 from public.conquistas c where c.nome = s.nome);
+where not exists (select 1 from public.conquistas c where lower(btrim(c.nome)) = lower(btrim(s.nome)));
 
 create index if not exists atividades_usuario_data_idx on public.atividades (id_usuario, data_registro);
 create index if not exists metas_usuario_prazo_idx on public.metas (id_usuario, prazo);

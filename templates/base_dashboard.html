@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/premium.css') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body data-usuario="{{ session.id_usuario }}">
@@ -21,17 +22,16 @@
             Lifes On
         </div>
 
-        <nav class="sidebar__nav">
-            <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if pagina_ativa == 'dashboard' else '' }}"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
-            <a href="{{ url_for('atividades') }}" class="{{ 'ativo' if pagina_ativa == 'atividades' else '' }}"><i class="fa-solid fa-circle-plus"></i> Registrar Atividade</a>
-            <a href="{{ url_for('metas') }}" class="{{ 'ativo' if pagina_ativa == 'metas' else '' }}"><i class="fa-solid fa-bullseye"></i> Metas</a>
-            <a href="{{ url_for('progresso') }}" class="{{ 'ativo' if pagina_ativa == 'progresso' else '' }}"><i class="fa-solid fa-chart-line"></i> Progresso</a>
-            <a href="{{ url_for('agenda') }}" class="{{ 'ativo' if pagina_ativa == 'agenda' else '' }}"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
-            <a href="{{ url_for('dicas') }}" class="{{ 'ativo' if pagina_ativa == 'dicas' else '' }}"><i class="fa-solid fa-lightbulb"></i> Dicas</a>
-            <a href="{{ url_for('pontuacao') }}" class="{{ 'ativo' if pagina_ativa == 'pontuacao' else '' }}"><i class="fa-solid fa-star"></i> Pontuação</a>
-            <a href="{{ url_for('configuracoes') }}" class="{{ 'ativo' if pagina_ativa == 'configuracoes' else '' }}"><i class="fa-solid fa-sliders"></i> Configurações</a>
-            <a href="{{ url_for('alertas') }}" class="{{ 'ativo' if pagina_ativa == 'alertas' else '' }}"><i class="fa-solid fa-bell"></i> Alertas</a>
-            <a href="{{ url_for('conquistas') }}" class="{{ 'ativo' if pagina_ativa == 'conquistas' else '' }}"><i class="fa-solid fa-trophy"></i> Conquistas</a>
+        <nav class="sidebar__nav" aria-label="Navegação principal">
+            <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if pagina_ativa == 'dashboard' else '' }}" {% if pagina_ativa == 'dashboard' %}aria-current="page"{% endif %}><i class="fa-solid fa-gauge-high" aria-hidden="true"></i> Dashboard</a>
+            <a href="{{ url_for('agenda') }}" class="{{ 'ativo' if pagina_ativa == 'agenda' else '' }}" {% if pagina_ativa == 'agenda' %}aria-current="page"{% endif %}><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Agenda</a>
+            <a href="{{ url_for('progresso') }}" class="{{ 'ativo' if pagina_ativa == 'progresso' else '' }}" {% if pagina_ativa == 'progresso' %}aria-current="page"{% endif %}><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Progresso</a>
+            <a href="{{ url_for('metas') }}" class="{{ 'ativo' if pagina_ativa == 'metas' else '' }}" {% if pagina_ativa == 'metas' %}aria-current="page"{% endif %}><i class="fa-solid fa-bullseye" aria-hidden="true"></i> Metas</a>
+            <a href="{{ url_for('atividades') }}" class="{{ 'ativo' if pagina_ativa == 'atividades' else '' }}" {% if pagina_ativa == 'atividades' %}aria-current="page"{% endif %}><i class="fa-solid fa-circle-plus" aria-hidden="true"></i> Registrar Atividade</a>
+            <a href="{{ url_for('pontuacao') }}" class="{{ 'ativo' if pagina_ativa == 'pontuacao' else '' }}" {% if pagina_ativa == 'pontuacao' %}aria-current="page"{% endif %}><i class="fa-solid fa-star" aria-hidden="true"></i> Pontuação</a>
+            <a href="{{ url_for('conquistas') }}" class="{{ 'ativo' if pagina_ativa == 'conquistas' else '' }}" {% if pagina_ativa == 'conquistas' %}aria-current="page"{% endif %}><i class="fa-solid fa-trophy" aria-hidden="true"></i> Conquistas</a>
+            <a href="{{ url_for('dicas') }}" class="{{ 'ativo' if pagina_ativa == 'dicas' else '' }}" {% if pagina_ativa == 'dicas' %}aria-current="page"{% endif %}><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Dicas</a>
+            <a href="{{ url_for('alertas') }}" class="{{ 'ativo' if pagina_ativa == 'alertas' else '' }}" {% if pagina_ativa == 'alertas' %}aria-current="page"{% endif %}><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas</a>
         </nav>
 
         <div class="sidebar__rodape">
@@ -52,13 +52,13 @@
     <main class="conteudo" id="conteudoPrincipal">
 
         <header class="topo">
-            <button type="button" class="menu-botao" id="menuBotao" aria-label="Abrir menu">
+            <button type="button" class="menu-botao" id="menuBotao" aria-label="Abrir menu" aria-expanded="false">
                 <i class="fa-solid fa-bars"></i>
             </button>
 
             <p class="topo__data" id="dataHoje"></p>
 
-            <div class="topo__acoes">
+            <div class="topo__acoes"><button type="button" class="audio-toggle" id="audioAlternar" aria-pressed="false" aria-label="Ativar sons"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i><span>Sons</span></button>
                 <a href="{{ url_for('alertas') }}" class="sino" aria-label="Ver alertas e lembretes"><i class="fa-solid fa-bell"></i>{% if alertas_nao_lidos %}<small>{{ alertas_nao_lidos }}</small>{% endif %}</a>
                 <span class="avatar">{{ nome[0]|upper }}</span>
             </div>
@@ -89,14 +89,16 @@
     var app = document.getElementById('app');
     document.getElementById('menuBotao').addEventListener('click', function () {
         app.classList.toggle('menu-aberto');
+        this.setAttribute('aria-expanded', app.classList.contains('menu-aberto'));
     });
     document.getElementById('sombraMenu').addEventListener('click', function () {
-        app.classList.remove('menu-aberto');
+        app.classList.remove('menu-aberto'); document.getElementById('menuBotao').setAttribute('aria-expanded','false');
     });
 </script>
 <div id="recompensaToast" class="recompensa-toast" role="status" aria-live="polite" hidden></div>
 <script id="feedbackRecompensa" type="application/json">{{ feedback_recompensa|tojson }}</script>
 <script src="{{ url_for('static', filename='js/interacoes.js') }}"></script>
 {% block scripts_extra %}{% endblock %}
+<script>document.addEventListener("keydown", e => {if(e.key === "Escape") {app.classList.remove("menu-aberto");document.getElementById("menuBotao").setAttribute("aria-expanded","false");}});</script>
 </body>
 </html>

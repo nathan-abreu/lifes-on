@@ -1,0 +1,97 @@
+/* Identidade compartilhada: esmeralda nas ações, navy na estrutura, âmbar nos marcos. */
+:root {--verde:#13866b;--verde-forte:#096c55;--verde-suave:#e9f4ef;--fundo:#f5f6f8;--texto:#182638;--texto-suave:#637184;--borda:#e4e8ee;--raio:20px;--sombra-cartao:0 5px 22px #17283e05;}
+.sidebar {background:#122338;background-image:none;}
+.sidebar__logo .raio {background:#32b894;box-shadow:none;width:38px;height:38px;border-radius:12px;font-size:1.1rem;}
+.sidebar__nav {gap:5px;}
+.sidebar__nav a {padding:13px 16px;color:#c1ccda;font-size:.86rem;}
+.sidebar__nav a.ativo {background:#ffffff12;color:#fff;box-shadow:inset 3px 0 #39cba4;}
+.sidebar__nav a:hover {background:#ffffff0d;color:#fff;}
+.sidebar__nav a i {color:inherit;}
+.conteudo {max-width:1800px;min-width:0;}
+.cartao {box-shadow:var(--sombra-cartao);border:1px solid var(--borda);}
+.cartao h2 {font-size:1.15rem;letter-spacing:-.025em;}
+.pagina__cabecalho h1,.saudacao h1 {font-weight:600;letter-spacing:-.05em;}
+.botao-verde,.btn-preenchido {background:var(--verde-forte);color:#fff;box-shadow:none;}
+.botao-verde:hover,.btn-preenchido:hover {background:#085944;color:white;box-shadow:0 4px 14px #096c551b;}
+.campo select,.campo input,.campo textarea {background:#fafbfc;}
+.barra {background:#e9edf1;height:7px;}
+.barra>div {background:#14896e;background-image:none;}
+.eyebrow {font-size:.64rem;font-weight:700;letter-spacing:.13em;color:#65788b;display:block;}
+.dashboard-saudacao {margin-bottom:26px;}
+.dashboard-saudacao h1 {margin:8px 0;font-size:2.1rem;}
+.dashboard-saudacao p {margin:0;color:var(--texto-suave);}
+.jornada-resumo {display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:16px;margin-bottom:22px;}
+.jornada-resumo .cartao {padding:21px 23px;min-width:0;margin:0;display:flex;flex-direction:column;justify-content:space-between;background:white;}
+.jornada-resumo h2 {font-size:1.2rem;margin:12px 0 8px;}
+.jornada-resumo p {font-size:.75rem;color:var(--texto-suave);line-height:1.6;margin:8px 0;}
+.jornada-resumo a {font-size:.73rem;margin-top:7px;color:#325b81;}
+.jornada-resumo .xp-cabecalho {gap:8px;}
+.jornada-resumo .xp-cabecalho strong {font-size:.77rem;color:var(--verde-forte);white-space:nowrap;}
+.colecao-linha,.sequencia-linha {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.chama {width:47px;height:60px;flex-shrink:0;color:#d89442;filter:drop-shadow(0 5px 8px #d8944222);}
+.medalhas-recentes {display:flex;flex-shrink:0;}
+.medalhas-recentes .medalha {width:44px;height:54px;margin:0;}
+.proximo-treino {display:grid;grid-template-columns:1.25fr 1fr;align-items:center;min-height:315px;border-radius:24px;background:#e8edf2;position:relative;overflow:hidden;margin:0 0 22px;padding:30px 40px;}
+.treino-editorial {position:relative;z-index:1;min-width:0;}
+.treino-editorial h2 {font-size:clamp(1.7rem,2.7vw,2.65rem);line-height:1.12;letter-spacing:-.055em;font-weight:600;max-width:470px;margin:18px 0;overflow-wrap:anywhere;}
+.treino-editorial p {color:#536579;font-size:.84rem;line-height:1.7;margin-bottom:25px;}
+.treino-editorial .botao-verde {width:auto;display:inline-flex;align-items:center;gap:12px;font-size:.82rem;padding:14px 22px;}
+.treino-editorial>a:not(.botao-verde) {font-size:.77rem;margin-left:18px;color:#34516e;}
+.modalidade-arte {display:inline-flex;align-items:center;justify-content:center;min-width:0;}
+.modalidade-arte img {width:100%;height:100%;object-fit:contain;}
+.arte-fallback {font-size:2rem;color:#617a91;}
+.arte-hero {width:100%;height:275px;filter:drop-shadow(0 18px 14px #283d511c);}
+.arte-hero img {height:320px;max-width:100%;}
+.arte-hero .arte-fallback {font-size:5rem;opacity:.65;}
+.arte-mini {width:58px;height:58px;flex-shrink:0;background:#f2f5f8;border-radius:14px;}
+.dashboard-inferior {display:grid;grid-template-columns:1.6fr 1fr;gap:22px;margin-bottom:22px;}
+.dashboard-inferior>.cartao {min-width:0;padding:24px;}
+.dashboard-inferior .grafico-container {height:150px;}
+.grafico-container canvas {max-width:100%;}
+.dashboard-inferior .grafico__cabecalho span {font-size:.65rem;}
+.dashboard-inferior .grafico__cabecalho h2 {font-size:1rem;}
+.dashboard-inferior .grafico__cabecalho a {color:var(--texto);}
+.meta-dashboard h3 {font-size:1.2rem;line-height:1.5;font-weight:500;overflow-wrap:anywhere;}
+.meta-dashboard strong {font-size:.8rem;}
+.meta-dashboard>a {display:block;margin-top:25px;font-size:.8rem;}
+.meta-dashboard p {font-size:.85rem;line-height:1.7;color:var(--texto-suave);}
+.timer-detalhes>summary {cursor:pointer;padding:16px 5px;font-weight:600;font-size:.88rem;color:#536579;}
+.timer-cartao {margin-bottom:20px;border-color:var(--borda);scroll-margin-top:20px;}
+.timer-cartao__select {min-width:0;max-width:100%;}
+.timer-cartao__relogio {color:#183957;font-size:clamp(2rem,7vw,3rem);font-variant-numeric:tabular-nums;}
+.audio-toggle {display:flex;align-items:center;gap:8px;padding:9px 12px;background:transparent;color:#516478;border:1px solid var(--borda);border-radius:20px;cursor:pointer;font:inherit;font-size:.75rem;}
+.audio-toggle[aria-pressed=true] {color:var(--verde-forte);background:var(--verde-suave);}
+.modalidades-grade {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+.modalidades-grade .exercicio-atalho {min-width:0;width:100%;display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 4px;font-size:.72rem;line-height:1.4;background:#f6f8fa;border:1px solid transparent;border-radius:14px;}
+.modalidades-grade .modalidade-arte {height:82px;width:100%;}
+.modalidades-grade .exercicio-atalho[aria-pressed=true] {border-color:var(--verde);background:#eaf4ef;color:#096c55;box-shadow:0 0 0 1px var(--verde);}
+.medalha {--metal:#c0a884;--miolo:#f7efe3;display:block;width:102px;height:114px;margin:0 auto 10px;filter:drop-shadow(0 7px 6px #24324515);}
+.medalha[data-raridade=Rara] {--metal:#8eaec3;--miolo:#edf5fc;}
+.medalha[data-raridade=Épica] {--metal:#a291ba;--miolo:#f3eef9;}
+.medalha[data-raridade=Lendária] {--metal:#c99942;--miolo:#fff0cd;}
+.medalha svg {width:100%;height:100%;}
+.medalha .fita {fill:#284662;}
+.medalha .metal {fill:var(--metal);stroke:#ffffffaa;stroke-width:2;}
+.medalha-miolo {fill:var(--miolo);stroke:#ffffffb0;stroke-width:2;}
+.medalha-simbolo {fill:none;stroke:#4c4a50;stroke-width:2.8;stroke-linejoin:round;stroke-linecap:round;}
+.conquista {position:relative;text-align:center;}
+.conquista .raridade {font-size:.65rem;text-transform:uppercase;letter-spacing:.12em;color:#667589;display:block;margin-bottom:14px;}
+.conquista:not(.conquista--desbloqueada) .medalha {filter:grayscale(.8);opacity:.5;}
+.conquista--desbloqueada {border-color:#b8c9c2;background:#fdfefd;}
+.conquista .mini__apoio {font-size:.75rem;}
+.dicas-hero {background:#18334e;}
+.dicas-hero-icone {font-size:6rem;top:2.5rem;color:#b8c9db;opacity:.12;}
+.dica-categoria {background:#edf2f7;color:#3c5a75;}
+.dica-simbolo {color:#5a7690;font-size:1.8rem;}
+.metrica__valor {color:#254763;}
+.atividade-linha__acoes {flex-wrap:wrap;}
+.legado {font-size:.72rem;}
+.xp-pulso {animation:xp-pulso .6s ease;}
+@keyframes xp-pulso {50% {box-shadow:0 0 0 4px #14896e22;}}
+@media (max-width:1200px) {.jornada-resumo {gap:12px;}.jornada-resumo .cartao {padding:17px;}.colecao-linha {flex-wrap:wrap;}.medalhas-recentes .medalha {width:30px;height:35px;}}
+@media (max-width:850px) {.jornada-resumo {grid-template-columns:repeat(3,minmax(0,1fr));}.proximo-treino {padding:28px;}.dashboard-inferior {grid-template-columns:1fr;}.chama {width:30px;}.jornada-resumo h2 {font-size:1rem;}}
+@media (max-width:600px) {.jornada-resumo {grid-template-columns:1fr 1fr;}.jornada-resumo .xp-card {grid-column:1/-1;}.dashboard-saudacao h1 {font-size:1.85rem;}.dashboard-saudacao>.timer-secundario {display:none;}.proximo-treino {grid-template-columns:1fr;padding:24px;}.treino-editorial h2 {font-size:2rem;}.arte-hero {height:210px;margin-top:10px;}.arte-hero img {height:235px;}.dashboard-inferior>.cartao {padding:20px;}.topo__acoes {gap:12px;}.audio-toggle span {display:none;}.audio-toggle {padding:8px;}.topo__data {font-size:.68rem;}.atividade-form__grade {grid-template-columns:minmax(0,1fr);}.conquistas-grid {grid-template-columns:minmax(0,1fr);}.timer-cartao__corpo {flex-direction:column;align-items:stretch;}.treino-editorial>a:not(.botao-verde) {display:inline-block;margin-top:14px;}.grafico__cabecalho {gap:8px;}.pagina__cabecalho h1 {overflow-wrap:anywhere;}}
+@media (prefers-reduced-motion:reduce) {*,*::before,*::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
+
+.jornada-resumo .xp-cabecalho {margin-bottom:6px;}
+.jornada-resumo .barra {margin:8px 0;}

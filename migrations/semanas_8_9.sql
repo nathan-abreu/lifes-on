@@ -1,7 +1,9 @@
-﻿-- Semanas 8/9. Revisar e autorizar antes de executar no Supabase.
+-- Semanas 8/9. Revisar e autorizar antes de executar no Supabase.
 -- Pré-requisitos: schema + semanas_6_7 + alertas_leitura.
--- Sem GRANT/REVOKE/RLS; não apaga nem premia retroativamente registros antigos.
+-- Requer seguranca_backend.sql autorizada e chave exclusiva do servidor no Flask.
+-- Restringe ACL do livro/funções; não modifica RLS nem apaga registros.
 begin;
+select lifes_private.exigir_backend_privado();
 alter table public.dicas add column if not exists categoria text not null default 'Hábitos saudáveis';
 alter table public.dicas add column if not exists fonte text;
 alter table public.agenda add column if not exists realizado_em timestamptz;
@@ -19,13 +21,56 @@ create table if not exists public.recompensas_xp (
  criado_em timestamptz not null default now(),
  unique(id_usuario,chave_evento)
 );
+-- A tabela pode não existir durante seguranca_backend.sql. Neutraliza seus
+-- default grants nesta mesma transação, antes de instalar os triggers.
+-- REVOKE na tabela não remove ACL por coluna. Não altera defaults do projeto.
+revoke all on public.recompensas_xp from public,anon,authenticated,service_role;
+do $$
+declare coluna record; seq text;
+begin
+ for coluna in select attname from pg_attribute
+   where attrelid='public.recompensas_xp'::regclass and attnum>0 and not attisdropped loop
+   execute format('revoke select (%1$I), insert (%1$I), update (%1$I), references (%1$I) on public.recompensas_xp from public,anon,authenticated,service_role',coluna.attname);
+   seq:=pg_get_serial_sequence('public.recompensas_xp',coluna.attname);
+   if seq is not null then
+     execute format('revoke all on sequence %s from public,anon,authenticated,service_role',seq);
+   end if;
+ end loop;
+end $$;
+grant select on public.recompensas_xp to service_role;
+-- IF NOT EXISTS não prova a definição de um índice já existente.
+-- Recusa índices parciais, inválidos, por expressão ou com colunas diferentes.
+do $$
+declare esperado record;
+begin
+ for esperado in select * from (values
+   ('atividades',array['id_usuario','chave_registro']),
+   ('atividades',array['id_usuario','id_agenda']),
+   ('recompensas_xp',array['id_usuario','chave_evento']),
+   ('usuario_conquista',array['id_usuario','id_conquista'])
+ ) e(tabela,colunas) loop
+   if not exists(select 1 from pg_index i
+     where i.indrelid=to_regclass('public.'||esperado.tabela)
+       and i.indisunique and i.indisvalid and i.indisready and i.indimmediate
+       and i.indpred is null and i.indexprs is null
+       and (select array_agg(a.attname::text order by k.ord)
+            from unnest(i.indkey) with ordinality k(num,ord)
+            join pg_attribute a on a.attrelid=i.indrelid and a.attnum=k.num
+            where k.ord<=i.indnkeyatts)=esperado.colunas) then
+     raise exception 'Unicidade obrigatória incompatível: % (%)',esperado.tabela,esperado.colunas;
+   end if;
+ end loop;
+end $$;
 -- Funções internas são invocadas exclusivamente por triggers. SECURITY DEFINER
 -- permite gravar o livro interno sem dar escrita nele ao cliente do Flask.
 -- search_path fixo e referências qualificadas; nenhuma função recebe usuário via RPC.
 create or replace function public.lifes_validar_registro() returns trigger
-language plpgsql security definer set search_path = pg_catalog, public as $$
+language plpgsql security definer set search_path = pg_catalog as $$
 declare concluido timestamptz;
 begin
+ if tg_relid <> 'public.atividades'::regclass or tg_when <> 'BEFORE' or tg_op not in ('INSERT','UPDATE') then
+   raise exception 'Contexto de trigger inválido';
+ end if;
  -- Serializa por usuário também as recompensas de sequência e retries concorrentes.
  perform 1 from public.usuarios where id_usuario=new.id_usuario for update;
  if new.chave_registro is not null and exists (
@@ -37,16 +82,25 @@ begin
    if not found then raise exception 'Treino não pertence ao usuário'; end if;
    if concluido is not null then return null; end if;
  end if;
- if new.tipo_exercicio not in ('Corrida','Musculação','Ciclismo','Natação','Yoga','Outros')
-    or new.duracao not between 1 and 1440 or new.frequencia not between 1 and 7
-    or new.data_registro > now() + interval '5 minutes' then
+ if new.tipo_exercicio is null or new.tipo_exercicio not in ('Corrida','Musculação','Ciclismo','Natação','Yoga','Outros')
+    or new.duracao is null or new.duracao not between 1 and 1440
+    or new.frequencia is null or new.frequencia not between 1 and 7
+    or new.data_registro is null or
+      (case when pg_typeof(new.data_registro)::text='timestamp without time zone'
+        then new.data_registro::timestamp at time zone 'UTC'
+        else new.data_registro::timestamptz end) > now() + interval '5 minutes' then
    raise exception 'Atividade inválida';
  end if;
  return new;
 end $$;
 create or replace function public.lifes_premiar() returns trigger
-language plpgsql security definer set search_path = pg_catalog, public as $$
+language plpgsql security definer set search_path = pg_catalog as $$
 begin
+ if tg_when <> 'AFTER' or not ((tg_relid='public.atividades'::regclass and tg_op in ('INSERT','UPDATE'))
+   or (tg_relid='public.metas'::regclass and tg_op='UPDATE')
+   or (tg_relid='public.usuario_conquista'::regclass and tg_op='INSERT')) then
+   raise exception 'Contexto de recompensa inválido';
+ end if;
  perform 1 from public.usuarios where id_usuario=new.id_usuario for update;
  if tg_table_name='atividades' then
    insert into public.recompensas_xp(id_usuario,chave_evento,motivo,xp)
@@ -59,8 +113,13 @@ begin
    if exists (
      select 1 from (
        select dia, dia - (row_number() over(order by dia))::integer as grupo
-       from (select distinct (data_registro at time zone 'America/Sao_Paulo')::date as dia
-             from public.atividades where id_usuario=new.id_usuario and data_registro<=now()) d
+       from (select distinct (case when pg_typeof(data_registro)::text='timestamp without time zone'
+               then (data_registro::timestamp at time zone 'UTC') at time zone 'America/Sao_Paulo'
+               else data_registro::timestamptz at time zone 'America/Sao_Paulo' end)::date as dia
+             from public.atividades where id_usuario=new.id_usuario and
+               (case when pg_typeof(data_registro)::text='timestamp without time zone'
+                 then data_registro::timestamp at time zone 'UTC'
+                 else data_registro::timestamptz end)<=now()) d
      ) s group by grupo having count(*)>=7
    ) then
      insert into public.recompensas_xp(id_usuario,chave_evento,motivo,xp)
@@ -89,12 +148,13 @@ create or replace trigger lifes_xp_meta after update on public.metas
 create or replace trigger lifes_xp_conquista after insert on public.usuario_conquista
  for each row execute function public.lifes_premiar();
 
--- Protege o livro contra XP arbitrário via INSERT/UPDATE/DELETE direto,
--- independentemente dos privilégios preexistentes. Não altera RLS/permissões.
+-- A autorização vem das ACLs e do papel efetivo postgres dos triggers internos.
+-- Profundidade é apenas uma verificação adicional de contexto, não autorização.
 create or replace function public.lifes_proteger_livro() returns trigger
-language plpgsql set search_path = pg_catalog, public as $$
+language plpgsql security invoker set search_path = pg_catalog as $$
 begin
- if tg_op <> 'INSERT' or pg_trigger_depth() < 2 then
+ if current_user <> 'postgres' or tg_relid <> 'public.recompensas_xp'::regclass
+    or tg_op <> 'INSERT' or pg_trigger_depth() < 2 then
    raise exception 'O histórico de XP só aceita recompensas dos eventos internos';
  end if;
  return new;
@@ -116,5 +176,28 @@ where not exists(select 1 from public.dicas d where d.titulo=s.titulo);
 -- Corrige afirmação absoluta do seed antigo sem apagar a dica.
 update public.dicas set descricao='Prepare-se com movimentos leves e aumente o esforço gradualmente. O aquecimento deve considerar a atividade e suas possibilidades.', categoria='Atividade física'
 where titulo='Aquecimento' and descricao='Cinco minutos de aquecimento reduzem bastante o risco de lesão.';
+
+-- Privilégios de escrita não são necessários para o cliente Flask: apenas SELECT.
+-- BYPASSRLS de service_role não concede INSERT quando a ACL o nega.
+revoke all on public.recompensas_xp from public,anon,authenticated,service_role;
+grant select on public.recompensas_xp to service_role;
+do $$
+declare seq text;
+begin
+ if (select relowner from pg_class where oid='public.recompensas_xp'::regclass)
+    <> (select oid from pg_roles where rolname='postgres') then
+   raise exception 'Proprietário do livro deve ser postgres; revisar antes de migrar';
+ end if;
+ seq:=pg_get_serial_sequence('public.recompensas_xp','id_recompensa');
+ if seq is not null then execute format('revoke all on sequence %s from public,anon,authenticated,service_role',seq); end if;
+end $$;
+alter function public.lifes_validar_registro() owner to postgres;
+revoke all on function public.lifes_validar_registro() from public,anon,authenticated,service_role;
+alter function public.lifes_premiar() owner to postgres;
+revoke all on function public.lifes_premiar() from public,anon,authenticated,service_role;
+alter function public.lifes_proteger_livro() owner to postgres;
+revoke all on function public.lifes_proteger_livro() from public,anon,authenticated,service_role;
+select lifes_private.exigir_backend_privado();
+
 notify pgrst,'reload schema';
 commit;

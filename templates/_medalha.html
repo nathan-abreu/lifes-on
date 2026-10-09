@@ -1,0 +1,13 @@
+{% macro medalha(simbolo, raridade, nome='Medalha') -%}
+<span class="medalha" data-raridade="{{ raridade }}" role="img" aria-label="{{ nome }} — {{ raridade }}">
+<svg viewBox="0 0 100 112" aria-hidden="true"><path d="M27 6H45L51 39L32 43Z" class="fita"/><path d="M55 6H73L68 43L49 39Z" class="fita"/><path d="M50 28L80 41L88 72L72 98L50 106L28 98L12 72L20 41Z" class="metal"/><circle cx="50" cy="67" r="27" class="medalha-miolo"/><g class="medalha-simbolo" transform="translate(28 44)">
+{% if simbolo == 'tenis' %}<path d="M4 12L16 9L22 20L38 25L40 33H4Z M5 28H38 M17 15L23 13 M21 21L27 18"/>
+{% elif simbolo == 'halter' %}<path d="M5 15V31 M11 10V36 M33 10V36 M39 15V31 M11 23H33"/>
+{% elif simbolo == 'relogio' %}<circle cx="22" cy="25" r="14"/><path d="M22 25V16 M17 5H27 M22 5V11 M33 13L37 9"/>
+{% elif simbolo == 'chama' %}<path d="M24 4C35 19 10 18 21 29C21 24 30 23 30 15C42 30 32 40 22 40C9 40 3 29 12 20C12 28 17 26 15 22C13 15 23 11 24 4Z"/>
+{% elif simbolo == 'alvo' %}<circle cx="22" cy="24" r="16"/><circle cx="22" cy="24" r="8"/><path d="M22 24L38 8 M30 8H38V16"/>
+{% elif simbolo == 'coroa' %}<path d="M7 32L4 13L15 21L22 7L29 21L40 13L37 32Z M9 38H35"/>
+{% elif simbolo == 'trofeu' %}<path d="M12 8H32V20C32 33 12 33 12 20Z M12 12H5C5 24 12 25 15 25 M32 12H39C39 24 32 25 29 25 M22 30V38 M13 39H31"/>
+{% else %}<path d="M22 5L38 12V24C36 34 29 39 22 42C15 39 8 34 6 24V12Z M14 24L20 30L31 18"/>{% endif %}
+</g></svg></span>
+{%- endmacro %}

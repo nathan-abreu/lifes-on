@@ -139,6 +139,10 @@ class ConsultaTeste:
                 linha.update(self.payload)
         elif self.operacao == "delete":
             for linha in selecionadas:
+                if self.tabela == 'atividades':
+                    evento = 'atividade:' + str(linha.get('chave_registro') or linha['id_atividade'])
+                    if any(r['id_usuario']==linha['id_usuario'] and r['chave_evento']==evento for r in self.banco.dados['recompensas_xp']):
+                        self.banco.premiar(linha['id_usuario'], 'estorno:'+evento, 'Estorno de atividade excluída', -20)
                 tabela.remove(linha)
         for campo, desc in reversed(self.ordens):
             selecionadas = sorted(selecionadas, key=lambda r: r[campo], reverse=desc)
@@ -396,7 +400,7 @@ class RotasTest(unittest.TestCase):
         self.assertEqual(len(self.banco.dados["alertas"]), 2)
         self.banco.ausentes.add("alertas")
         self.assertEqual(self.client.get("/dashboard").status_code, 200)
-        self.assertIn("alertas_leitura.sql", self.client.get("/alertas").get_data(as_text=True))
+        self.assertIn("Não foi possível carregar seus alertas", self.client.get("/alertas").get_data(as_text=True))
 
     def test_timer_agenda_disponiveis_ordenados_e_isolados(self):
         self.banco.dados["agenda"] = [
@@ -536,7 +540,7 @@ class RotasTest(unittest.TestCase):
         for caminho in ("/dashboard", "/progresso", "/alertas", "/conquistas"):
             self.assertEqual(self.client.get(caminho).status_code, 200)
         self.assertEqual(self.client.get("/agenda").status_code, 503)
-        self.assertIn("estrutura do banco precisa", self.client.get("/agenda").get_data(as_text=True))
+        self.assertIn("atualização do banco", self.client.get("/agenda").get_data(as_text=True))
         with patch.object(self.banco, "table", side_effect=ConnectError("indisponível")):
             self.assertEqual(self.client.get("/dashboard").status_code, 503)
         with patch.object(self.banco, "table", side_effect=APIError({"code": "42501", "message": "Sem acesso"})):
@@ -565,24 +569,24 @@ class RotasTest(unittest.TestCase):
         self.assertLess(html.index("<strong>Agora"), html.index("<strong>Hoje tarde"))
         self.assertLess(html.index("<strong>Hoje tarde"), html.index("<strong>Amanhã"))
         html = self.client.get("/dashboard").get_data(as_text=True)
-        self.assertIn('<p class="mini__valor">Agora</p>', html)
-        self.assertIn("para hoje", html)
+        self.assertIn('<h2>Agora</h2>', html)
+        self.assertIn("24/09/2026 às 12:00", html)
         self.post("/agenda/editar/3", {**self.dados_treino(), "titulo": "Remarcado", "data": "2026-09-26"})
         html = self.client.get("/dashboard").get_data(as_text=True)
-        self.assertIn('<p class="mini__valor">Hoje tarde</p>', html)
+        self.assertIn('<h2>Hoje tarde</h2>', html)
         self.assertNotIn('Treino &#34;Remarcado&#34;', html)
         self.post("/agenda/excluir/2")
-        self.assertIn('<p class="mini__valor">Amanhã</p>', self.client.get("/dashboard").get_data(as_text=True))
+        self.assertIn('<h2>Amanhã</h2>', self.client.get("/dashboard").get_data(as_text=True))
 
     def test_agenda_coluna_ausente_mensagem_e_formulario_preservado(self):
         self.banco.colunas_ausentes.add("titulo")
         for caminho in ("/agenda", "/agenda/novo"):
             resposta = self.client.get(caminho)
             self.assertEqual(resposta.status_code, 503)
-            self.assertIn("migração", resposta.get_data(as_text=True))
+            self.assertIn("atualização do banco", resposta.get_data(as_text=True))
         resposta = self.post("/agenda/novo", self.dados_treino())
         self.assertEqual(resposta.status_code, 503)
-        self.assertIn("Treino não salvo", resposta.get_data(as_text=True))
+        self.assertIn("Não foi possível confirmar o salvamento do treino", resposta.get_data(as_text=True))
         self.assertIn('value="Treino real"', resposta.get_data(as_text=True))
         self.assertEqual(self.banco.dados["agenda"], [])
 
@@ -612,20 +616,21 @@ class RotasTest(unittest.TestCase):
         self.post("/metas/editar/1", {"descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 0})
         self.client.get("/conquistas")
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 2)
-        self.assertIn("2 de 6 desbloqueadas", self.client.get("/dashboard").get_data(as_text=True))
+        self.assertIn("2 conquistas", self.client.get("/dashboard").get_data(as_text=True))
 
     def test_conquista_parcial_e_em_movimento(self):
         self.banco.dados["atividades"] = [atividade(i) for i in range(5)]
+        self.post("/conquistas/sincronizar")
         html = self.client.get("/conquistas").get_data(as_text=True)
         self.assertIn("5/10 atividades", html)
-        self.assertIn("2 de 6 desbloqueadas", html)
-        self.assertEqual({r["id_conquista"] for r in self.banco.dados["usuario_conquista"]}, {1, 6})
+        self.assertIn("3 de 14 desbloqueadas", html)
+        self.assertEqual({r["id_conquista"] for r in self.banco.dados["usuario_conquista"]}, {1, 6, 12})
 
     def test_conquistas_isoladas_por_usuario(self):
         self.banco.dados["atividades"] = [atividade()]
-        self.client.get("/conquistas")
+        self.post("/conquistas/sincronizar")
         self.entrar(2)
-        self.assertIn("0 de 6 desbloqueadas", self.client.get("/conquistas").get_data(as_text=True))
+        self.assertIn("0 de 14 desbloqueadas", self.client.get("/conquistas").get_data(as_text=True))
         self.post("/atividades/nova", {"tipo_exercicio": "Yoga", "duracao": 15, "frequencia": 1})
         self.assertEqual({r["id_usuario"] for r in self.banco.dados["usuario_conquista"]}, {1, 2})
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 2)
@@ -639,7 +644,7 @@ class RotasTest(unittest.TestCase):
             return original(consulta, payload, **kwargs)
 
         with patch.object(ConsultaTeste, "upsert", corrida):
-            self.client.get("/conquistas")
+            self.post("/conquistas/sincronizar")
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 1)
         self.assertEqual(self.banco.dados["usuario_conquista"][0]["data_obtencao"], "2026-09-23")
 
@@ -650,7 +655,7 @@ class RotasTest(unittest.TestCase):
         self.assertEqual(len(self.banco.dados["atividades"]), 1)
         self.assertIn("Conquistas indisponíveis", self.client.get("/conquistas").get_data(as_text=True))
         self.banco.ausentes.clear()
-        self.client.get("/conquistas")
+        self.post("/conquistas/sincronizar")
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 1)
 
     def test_dashboard_meta_real_conquista_e_xp_confirmado(self):
@@ -659,8 +664,8 @@ class RotasTest(unittest.TestCase):
         html = self.client.get("/dashboard").get_data(as_text=True)
         self.assertIn("Minha meta real", html)
         self.assertIn("70%", html)
-        self.assertIn("Mais recente: Primeiro passo", html)
-        self.assertIn('30 XP', html)
+        self.assertIn("0 conquistas", html)
+        self.assertIn('0 XP', html)
         self.assertIn('Nível 1', html)
 
     def test_grafico_mensal_json_sem_dados_alheios(self):

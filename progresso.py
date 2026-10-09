@@ -106,12 +106,28 @@ REGRAS_CONQUISTAS = [
     ("Veterano", "Realize 30 atividades.", "atividades", 30, "total_atividades"),
     ("Semana cheia", "Registre atividades em 7 dias consecutivos.", "dias seguidos", 7, "melhor_sequencia"),
     ("Em Movimento", "Realize 5 atividades.", "atividades", 5, "total_atividades"),
+    ("Lenda do Treino", "Realize 100 atividades.", "atividades", 100, "total_atividades"),
+    ("Constância de Aço", "Registre atividades em 14 dias consecutivos.", "dias seguidos", 14, "melhor_sequencia"),
+    ("Imparável", "Registre atividades em 30 dias consecutivos.", "dias seguidos", 30, "melhor_sequencia"),
+    ("Caçador de Metas", "Conclua 5 metas.", "metas", 5, "metas_concluidas"),
+    ("Mestre dos Objetivos", "Conclua 10 metas.", "metas", 10, "metas_concluidas"),
+    ("Uma Hora de Superação", "Acumule 60 minutos de atividades.", "minutos", 60, "minutos_total"),
+    ("Dez Horas de Evolução", "Acumule 600 minutos de atividades.", "minutos", 600, "minutos_total"),
+    ("Centurião", "Acumule 6.000 minutos de atividades.", "minutos", 6000, "minutos_total"),
 ]
+
+ARTES_CONQUISTAS = dict(zip((r[0] for r in REGRAS_CONQUISTAS), [
+    ('Comum', 'tenis'), ('Rara', 'halter'), ('Comum', 'alvo'), ('Épica', 'escudo'),
+    ('Rara', 'chama'), ('Comum', 'tenis'), ('Lendária', 'coroa'), ('Épica', 'chama'),
+    ('Lendária', 'chama'), ('Rara', 'alvo'), ('Lendária', 'trofeu'),
+    ('Comum', 'relogio'), ('Épica', 'relogio'), ('Lendária', 'escudo'),
+]))
 
 
 def calcular_conquistas(resumo):
     return [
         {"nome": nome, "descricao": descricao, "unidade": unidade, "objetivo": objetivo,
+         "raridade": ARTES_CONQUISTAS[nome][0], "simbolo": ARTES_CONQUISTAS[nome][1],
          "progresso": min(resumo[campo], objetivo), "percentual": min(100, round(resumo[campo] * 100 / objetivo)),
          "requisito_atingido": resumo[campo] >= objetivo}
         for nome, descricao, unidade, objetivo, campo in REGRAS_CONQUISTAS

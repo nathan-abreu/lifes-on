@@ -1,4 +1,10 @@
-# Lifes On — entrega das Semanas 8 e 9
+> Auditoria posterior: [AUDITORIA_XP.md](AUDITORIA_XP.md) substitui as orientações de segurança e implantação deste registro histórico.
+
+# Lifes On — entrega inicial das Semanas 8 e 9
+
+> Registro histórico. As regras de frequência, exclusão/XP, reconciliação por GET,
+> imagens, áudio e Dashboard abaixo foram substituídas pela
+> [revisão final](FINALIZACAO_PREMIUM.md). Consulte esse relatório para a versão atual.
 
 Implementação local em 08/10/2026. Flask, Supabase e os módulos anteriores foram
 preservados. A liberação no banco remoto **ainda depende da autorização e aplicação
@@ -120,20 +126,16 @@ para o conteúdo.
 Tabelas: `usuarios`, `atividades`, `agenda`, `metas`, `conquistas`,
 `usuario_conquista`, `alertas`, `dicas`, `recompensas_xp`.
 
-Banco existente: revisar e autorizar `migrations/semanas_8_9.sql`; requer as migrações
-anteriores. Banco novo: `schema.sql` contém também essa evolução. **Não execute
-schema.sql para atualizar um banco existente.** A migração é transacional/repetível,
-adiciona colunas, índices, livro, funções, triggers e conteúdo editorial. Não apaga
-registros, muda chaves, GRANT/REVOKE, policies ou RLS.
+Banco existente: seguir AUDITORIA_XP.md. Configurar chave service_role apenas no
+servidor, revisar/autorizar `seguranca_backend.sql`, depois executar `semanas_8_9.sql`
+e `finalizacao_premium.sql` em manutenção. As versões corrigidas restringem ACLs;
+não alteram RLS/policies nem apagam registros. As migrações anteriores continuam
+sendo pré-requisitos. Não executar schema.sql sobre banco existente.
 
-O papel usado pelo Flask precisa ler `recompensas_xp` e continuar gravando as tabelas
-existentes. Os triggers internos SECURITY DEFINER usam search_path fixo; nenhuma
-função RPC recebe usuário/XP informado pelo cliente. Privilégios/defaults/RLS do
-ambiente real precisam ser conferidos: a migração preserva a configuração vigente.
-O login existente usa sessões Flask, e não Supabase Auth. Isolamento foi testado nas
-rotas Flask; exposição direta pela API do Supabase depende das policies existentes
-e **não foi certificada**. Não publicar como produção multiusuário sem essa revisão.
-Nenhuma política ou credencial foi modificada nesta entrega.
+A sessão Flask não fornece identidade individual à API Supabase. O acesso público
+às tabelas deve ser bloqueado; o serviço continua responsável pelo filtro do usuário.
+Os testes locais não certificam os privilégios nem o isolamento do Supabase real.
+Nenhuma política, permissão remota ou credencial real foi modificada nesta auditoria.
 
 PowerShell:
 ```powershell

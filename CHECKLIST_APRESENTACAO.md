@@ -1,58 +1,56 @@
-# Checklist final — apresentação do Lifes On
+> Diagnóstico real e checklist atualizado: [ESTABILIZACAO_INTEGRACAO.md](ESTABILIZACAO_INTEGRACAO.md).
 
-Validado localmente em 08/10/2026. `[x]` significa verificado localmente;
-`[ ]` significa pendente no Supabase real ou na apresentação.
+# Checklist — finalização Lifes On
 
-## Preparação do ambiente real
+Situação em 08/10/2026. `[x]` significa validado localmente; a persistência remota
+continua bloqueada por migrações pendentes. Relatório: [FINALIZACAO_PREMIUM.md](FINALIZACAO_PREMIUM.md).
 
-- [ ] Autorizar/revisar e aplicar `migrations/semanas_8_9.sql`.
-- [ ] Executar diagnóstico de estrutura e conferir permissões/RLS vigentes.
-- [ ] Autorizar conta/dados de teste para validar gravações remotas sem afetar usuários.
-- [ ] Conferir `.env` apenas no servidor; nunca mostrar chaves na apresentação.
-- [ ] Reiniciar Flask e repetir os fluxos abaixo no banco real.
+## Antes da apresentação real
 
-## Roteiro para a professora
+- [ ] Revisar diagnóstico `migrations/diagnostico_finalizacao.sql` (somente leitura).
+- [ ] Revisar [AUDITORIA_XP.md](AUDITORIA_XP.md), configurar chave service_role apenas no servidor e ativar modo estrito.
+- [ ] Em manutenção, autorizar ACLs e aplicar `seguranca_backend.sql`, `semanas_8_9.sql`, depois `finalizacao_premium.sql`.
+- [ ] Validar negação de acesso anon/authenticated, ausência de escrita direta no livro e retries concorrentes reais com conta de teste autorizada.
+- [ ] Conferir constraints, triggers, índices, permissões e RLS sem ampliá-los automaticamente.
+- [ ] Rodar `python -m scripts.verificar_banco --detalhado`; todas as colunas devem estar acessíveis.
+- [ ] Autorizar conta de teste e validar criação, recarga e persistência reais.
+- [ ] Completar os cenários abaixo no Supabase, incluindo duas contas e duas abas.
+- [ ] Adicionar Yoga e Ciclismo; as outras cinco artes estão integradas.
+- [ ] Ouvir os sons no equipamento da apresentação e conferir volume.
 
-- [x] Usuário sem atividades: métricas zero, sem dados inventados, nível 1 e estados vazios.
-- [x] Criar treino: aparece na Agenda e Dashboard sem atividade ou XP.
-- [x] Cronômetro: iniciar, pausar, continuar, finalizar e confirmar modalidade.
-- [x] Cancelar sessão não registra atividade; sessão curta pede continuar.
-- [x] Confirmar atualiza atividade, minutos, gráfico, sequência e XP.
-- [x] Agenda mantém treino como realizado e remove-o do próximo treino/cronômetro.
-- [x] Registro manual usa os mesmos dados e recompensas; frequência não multiplica minutos.
-- [x] Dashboard e Progresso mostram minutos coerentes; gráficos mensal/modalidades usam registros reais.
-- [x] Criar/editar/excluir meta; conclusão única e meta reaberta não repete XP.
-- [x] Ganho exato de XP, conquista persistida, nível 2 e barra coerente.
-- [x] Conquistas permanecem após recarregar ou excluir atividade.
-- [x] Alertas: leitura individual/coletiva e contador persistidos; sem duplicação.
-- [x] Dicas: categorias, busca, filtros, detalhe, fontes e nenhum resultado.
-- [x] Duplo clique e retry com mesma chave não duplicam registros.
-- [x] Resposta perdida após salvamento: retry do cronômetro reconhece treino já concluído.
-- [x] Falha na recompensa SQL reverte atividade e conclusão da Agenda juntas.
-- [x] Falha de conexão mostra mensagem; ausência da migração é informada.
-- [x] Acesso de outro usuário às rotas de registros é rejeitado ou não encontra registros.
-- [x] CSRF obrigatório; XP e usuário enviados pelo frontend não determinam a recompensa/dono.
-- [x] Sons desligados/ligados, volume salvo, síntese no Chrome e uso sem áudio.
-- [x] Movimento reduzido respeitado em CSS e gráficos.
-- [x] Viewports de 390 e 320 px sem overflow horizontal nos fluxos verificados.
-- [x] Capturas de Dashboard e Dicas inspecionadas em desktop e celular.
+## Cenários locais verificados
 
-## Confirmação ainda necessária
+- [x] Cadastro/login, sessão, CSRF, isolamento nas rotas Flask.
+- [x] Agenda: criar/editar/excluir, modalidade opcional e treino mais próximo.
+- [x] Iniciar pela Agenda e Dashboard; pausar, retomar, finalizar e confirmar.
+- [x] Treino curto não salva; confirmação grava uma única sessão.
+- [x] Duplo clique/retry e resposta perdida não duplicam atividade/XP.
+- [x] Recarregar após falha mantém UUID e confirmação pendente na mesma aba.
+- [x] 503 exibe erro amigável sem SQL; nenhum prêmio antes do sucesso.
+- [x] Atividade, XP básico e realização da Agenda fazem rollback juntos no PostgreSQL local.
+- [x] Manual sem frequência, data de realização, rejeição de futuro e Artes Marciais.
+- [x] Edição mantém frequência legada; histórico identifica registros antigos.
+- [x] Progresso, gráficos/tabelas e sequência usam sessões e datas reais.
+- [x] Meta concluída uma vez; reabrir/reconcluir não duplica recompensa.
+- [x] Níveis derivados do livro; exclusão de atividade estorna 20 XP uma única vez.
+- [x] Conquistas históricas permanecem; recuperação explícita é idempotente.
+- [x] Nenhum XP por visitar páginas ou agendar treino.
+- [x] 14 critérios de conquistas, símbolos, raridade, progresso e data.
+- [x] Alertas individuais/coletivos, contador e estado lido persistidos no banco simulado.
+- [x] Dicas: busca, filtro, detalhe, vazio, fontes e erro de conexão.
+- [x] Imagens WebP, transparência, fallback por ausência/falha e PNGs preservados.
+- [x] Sidebar na ordem solicitada; áudio no cabeçalho.
+- [x] Controle/volume persistidos, síntese original, fila de recompensas e movimento reduzido.
+- [x] 11 páginas/formulários em 1440, 1024, 768, 390 e 320 px sem rolagem horizontal.
+- [x] Dashboard, formulário e conquistas inspecionados em capturas desktop/mobile.
 
-- [ ] Repetir registro manual, cronômetro, meta e conquista no Supabase com conta autorizada.
-- [ ] Recarregar e conferir persistência remota de XP, realização da Agenda e alertas.
-- [ ] Testar duas abas/requisições concorrentes reais e isolamento com duas contas reais.
-- [ ] Auditar acesso direto pela API Supabase; teste das rotas Flask não certifica RLS.
-- [ ] Conferir som/volume nos equipamentos da sala e navegador utilizado na apresentação.
-- [ ] Fazer revisão humana final do conteúdo educativo e dos textos.
+## Evidências reproduzíveis
 
-## Evidências
+- 64 testes Python com banco simulado: `python -m unittest -q`.
+- Chrome: `tests.browser_smoke`, `tests.browser_semanas_8_9`, `tests.browser_finalizacao`.
+- PostgreSQL WASM local: `node tests/sql_semanas_8_9.cjs` e `node tests/sql_seguranca.cjs` (PGLITE_MODULE configurado).
+- Capturas: `artifacts/validacao/` (ignoradas pelo Git, dados de teste).
+- Remoto: somente SELECT limit=0, com colunas/livro ainda indisponíveis.
 
-- `python -m unittest -q`: 54 testes locais.
-- `python -m tests.browser_smoke`: regressão no Chrome com banco simulado.
-- `python -m tests.browser_semanas_8_9`: novos fluxos no Chrome com banco simulado.
-- `node tests/sql_semanas_8_9.cjs`: PostgreSQL WASM real local, triggers e rollback.
-- Capturas em `artifacts/validacao/`.
-- Diagnóstico remoto: exclusivamente SELECT limit=0; novas colunas/livro ainda ausentes.
-
-Não marcar a apresentação como validada no banco real antes de completar os itens pendentes.
+Não marcar a apresentação como pronta no Supabase antes de validar salvamento e XP
+no ambiente real. Testes Flask não certificam isolamento pela API direta/RLS.

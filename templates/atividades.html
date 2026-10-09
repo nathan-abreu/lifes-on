@@ -1,5 +1,6 @@
 {% extends "base_dashboard.html" %}
 
+{% from '_modalidade.html' import ilustracao with context %}
 {% set pagina_ativa = 'atividades' %}
 
 {% block titulo %}Atividades{% endblock %}
@@ -19,14 +20,14 @@
             <div class="lista-atividades">
                 {% for atividade in atividades %}
                     <article class="cartao atividade-linha">
-                        <span class="atividade__icone"><i class="fa-solid fa-person-running"></i></span>
+                        {{ ilustracao(atividade.tipo_exercicio, 'arte-mini') }}
 
                         <div class="atividade-linha__info">
                             <strong>{{ atividade.tipo_exercicio }}</strong>
                             <div class="atividade-linha__meta">
                                 <span><i class="fa-solid fa-clock"></i> {{ atividade.duracao }} min</span>
-                                <span><i class="fa-solid fa-repeat"></i> {{ atividade.frequencia }}x por semana</span>
-                                <span><i class="fa-solid fa-calendar-days"></i> {{ atividade.data_registro[:10] }}</span>
+                                {% if atividade.frequencia %}<span class="legado">Frequência declarada no registro antigo: {{ atividade.frequencia }}x/semana</span>{% endif %}
+                                <span><i class="fa-solid fa-calendar-days"></i> {{ atividade.data_formatada }}</span>
                             </div>
                         </div>
 

@@ -16,8 +16,8 @@
             datasets: [{
                 label: legenda,
                 data: serie[campo],
-                borderColor: '#22c55e',
-                backgroundColor: tipo === 'bar' ? '#22c55e' : 'rgba(34, 197, 94, 0.12)',
+                borderColor: '#3c6b91',
+                backgroundColor: tipo === 'bar' ? '#3c6b91' : 'rgba(60, 107, 145, 0.07)',
                 fill: true,
                 tension: 0.25
             }]

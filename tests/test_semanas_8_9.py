@@ -32,11 +32,11 @@ class IntegracaoTest(unittest.TestCase):
         self.registrar(chave);self.registrar(chave)
         self.assertEqual(len(self.banco.dados['atividades']),1)
         self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),50)
-        self.post('/atividades/editar/1',dict(tipo_exercicio='Yoga',duracao=60,frequencia=2))
+        self.post('/atividades/editar/1',dict(tipo_exercicio='Yoga',duracao=40,frequencia=2))
         self.post('/atividades/excluir/1')
         self.registrar(chave)
         self.assertEqual(len(self.banco.dados['atividades']),0)
-        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),50)
+        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),30)
 
     def test_feedback_exato_uma_vez(self):
         self.registrar()
@@ -131,7 +131,7 @@ class IntegracaoTest(unittest.TestCase):
         self.assertFalse(resposta.json['conquistas_atualizadas'])
         self.assertEqual(resposta.json['recompensa']['xp_recebido'],20)
         self.banco.ausentes.clear()
-        self.client.get('/conquistas')
+        self.post('/conquistas/sincronizar')
         self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),50)
 
     def test_formulario_falha_preserva_uuid_e_valores(self):

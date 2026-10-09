@@ -1,135 +1,27 @@
 {% extends "base_dashboard.html" %}
-
+{% from '_modalidade.html' import ilustracao with context %}
 {% set pagina_ativa = 'atividades' %}
-
 {% block titulo %}{{ 'Editar Atividade' if modo == 'editar' else 'Registrar Atividade' }}{% endblock %}
-
 {% block conteudo %}
-        <section class="pagina__cabecalho">
-            <h1>{{ 'Editar Atividade' if modo == 'editar' else 'Registrar Atividade' }}</h1>
-            <p>Adicione sua atividade física e ganhe XP</p>
-        </section>
-
-        <div class="atividade-form__grade">
-            <!-- Coluna esquerda: formulario -->
-            <form class="cartao" method="post" id="formAtividade"
-                  action="{{ url_for('atividade_editar', id_atividade=atividade.id_atividade) if modo == 'editar' else url_for('atividade_nova') }}">
-                <input type="hidden" name="chave_registro" value="{{ chave_registro }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-                <h2 class="cartao__titulo">Detalhes da Atividade</h2>
-
-                <div class="campo">
-                    <label for="tipo_exercicio">Tipo de exercício</label>
-                    <select id="tipo_exercicio" name="tipo_exercicio" required>
-                        <option value="" disabled {{ 'selected' if not atividade }}>Selecione um exercício</option>
-                        {% for tipo in tipos_exercicio %}
-                            <option value="{{ tipo }}" {{ 'selected' if atividade and atividade.tipo_exercicio == tipo }}>{{ tipo }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div class="campo">
-                    <label for="duracao">Duração (minutos)</label>
-                    <input type="number" id="duracao" name="duracao" min="1" max="1440" step="1" required
-                           value="{{ atividade.duracao if atividade else '' }}">
-                </div>
-
-                <div class="campo">
-                    <label>Frequência (vezes por semana)</label>
-                    <div class="frequencia-grupo" id="frequenciaGrupo">
-                        {% for n in range(1, 8) %}
-                            <button type="button" class="frequencia-botao {{ 'selecionado' if atividade and atividade.frequencia|int == n }}" data-valor="{{ n }}" aria-pressed="{{ 'true' if atividade and atividade.frequencia|int == n else 'false' }}">{{ n }}</button>
-                        {% endfor %}
-                    </div>
-                    <input type="hidden" id="frequencia" name="frequencia" value="{{ atividade.frequencia if atividade else '' }}" required>
-                </div>
-
-                <button type="submit" class="botao-verde">Salvar atividade</button>
-            </form>
-
-            <!-- Coluna direita: previa + atalhos -->
-            <div>
-                <div class="cartao previa">
-                    <h2 class="cartao__titulo">Prévia da atividade</h2>
-
-                    <div class="previa__linha">
-                        <span class="previa__rotulo">Exercício</span>
-                        <span class="previa__valor" id="previaExercicio">—</span>
-                    </div>
-                    <div class="previa__linha">
-                        <span class="previa__rotulo">Duração</span>
-                        <span class="previa__valor" id="previaDuracao">—</span>
-                    </div>
-                    <div class="previa__linha">
-                        <span class="previa__rotulo">Frequência</span>
-                        <span class="previa__valor" id="previaFrequencia">—</span>
-                    </div>
-                    <div class="previa__linha">
-                        <span class="previa__rotulo">Recompensa por registro</span>
-                        <span class="previa__valor destaque" id="previaXp">0 XP</span>
-                    </div>
-                </div>
-
-                <section class="cartao exercicios-populares">
-                    <h2 class="cartao__titulo">Exercícios populares</h2>
-                    <div class="exercicios-populares__lista">
-                        {% for tipo in tipos_exercicio %}
-                            <button type="button" class="exercicio-atalho" data-tipo="{{ tipo }}">{{ tipo }}</button>
-                        {% endfor %}
-                    </div>
-                </section>
-            </div>
-        </div>
+<section class="pagina__cabecalho"><h1>{{ 'Editar Atividade' if modo == 'editar' else 'Registrar Atividade' }}</h1><p>Uma sessão realizada. Mais um passo na sua jornada.</p></section>
+<div class="atividade-form__grade">
+ <form class="cartao" method="post" id="formAtividade">
+  <input type="hidden" name="chave_registro" value="{{ chave_registro }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <h2 class="cartao__titulo">Seu treino</h2>
+  <div class="campo"><label for="tipo_exercicio">Modalidade</label><select id="tipo_exercicio" name="tipo_exercicio" required><option value="">Selecione uma modalidade</option>{% for tipo in tipos_exercicio %}<option value="{{ tipo }}" {{ 'selected' if atividade and atividade.tipo_exercicio == tipo }}>{{ tipo }}</option>{% endfor %}</select></div>
+  <div class="campo"><label for="duracao">Duração (minutos)</label><input type="number" id="duracao" name="duracao" min="1" max="1440" step="1" required value="{{ atividade.duracao if atividade else '' }}"></div>
+  <div class="campo"><label for="data_realizacao">Data da realização</label><input type="date" id="data_realizacao" name="data_realizacao" required max="{{ data_hoje_iso }}" value="{{ atividade.data_realizacao if atividade and atividade.data_realizacao else data_hoje_iso }}"></div>
+  <p class="mini__apoio">Cada registro conta como uma sessão. Registre apenas o que você já realizou.</p>
+  {% if atividade and atividade.frequencia %}<p class="mini__apoio">A frequência declarada no registro antigo será preservada como histórico; ela não multiplica sessões.</p>{% endif %}
+  <button type="submit" class="botao-verde">Salvar atividade</button>
+ </form>
+ <aside class="cartao modalidades-selecao"><h2 class="cartao__titulo">Encontre seu movimento</h2><div class="modalidades-grade">{% for tipo in tipos_exercicio %}<button type="button" class="exercicio-atalho" data-tipo="{{ tipo }}" aria-pressed="{{ 'true' if atividade and atividade.tipo_exercicio == tipo else 'false' }}">{{ ilustracao(tipo) }}<span>{{ tipo }}</span></button>{% endfor %}</div><p class="mini__apoio">{{ 'Editar preserva os 20 XP da sessão. Novos marcos podem desbloquear conquistas.' if modo == 'editar' else '20 XP por sessão confirmada. Conquistas podem trazer novas recompensas.' }}</p></aside>
+</div>
 {% endblock %}
-
-{% block scripts_extra %}
-<script>
-    (function () {
-        var selectExercicio = document.getElementById('tipo_exercicio');
-        var inputDuracao = document.getElementById('duracao');
-        var inputFrequencia = document.getElementById('frequencia');
-        var botoesFrequencia = document.querySelectorAll('.frequencia-botao');
-
-        var previaExercicio = document.getElementById('previaExercicio');
-        var previaDuracao = document.getElementById('previaDuracao');
-        var previaFrequencia = document.getElementById('previaFrequencia');
-        var previaXp = document.getElementById('previaXp');
-
-        function atualizarPrevia() {
-            previaExercicio.textContent = selectExercicio.value || '—';
-
-            var duracao = parseInt(inputDuracao.value, 10);
-            previaDuracao.textContent = duracao > 0 ? duracao + ' min' : '—';
-
-            var frequencia = parseInt(inputFrequencia.value, 10);
-            previaFrequencia.textContent = frequencia > 0 ? frequencia + 'x por semana' : '—';
-
-            var xp = {{ 0 if modo == 'editar' else 20 }};
-            previaXp.textContent = xp ? '+20 XP após salvar' : 'Edição não concede XP';
-        }
-
-        selectExercicio.addEventListener('change', atualizarPrevia);
-        inputDuracao.addEventListener('input', atualizarPrevia);
-
-        botoesFrequencia.forEach(function (botao) {
-            botao.addEventListener('click', function () {
-                botoesFrequencia.forEach(function (b) { b.classList.remove('selecionado'); b.setAttribute('aria-pressed','false'); });
-                botao.classList.add('selecionado');
-                botao.setAttribute('aria-pressed','true');
-                inputFrequencia.value = botao.dataset.valor;
-                atualizarPrevia();
-            });
-        });
-
-        document.querySelectorAll('.exercicio-atalho').forEach(function (atalho) {
-            atalho.addEventListener('click', function () {
-                selectExercicio.value = atalho.dataset.tipo;
-                atualizarPrevia();
-            });
-        });
-
-        atualizarPrevia();
-    })();
-</script>
-{% endblock %}
+{% block scripts_extra %}<script>
+const modalidade = document.getElementById('tipo_exercicio');
+function selecionarModalidade() {document.querySelectorAll('[data-tipo]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tipo === modalidade.value));}
+document.querySelectorAll('[data-tipo]').forEach(b => b.addEventListener('click', () => {modalidade.value=b.dataset.tipo;selecionarModalidade();}));
+modalidade.addEventListener('change', selecionarModalidade);
+</script>{% endblock %}

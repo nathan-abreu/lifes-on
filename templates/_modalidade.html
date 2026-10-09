@@ -1,0 +1,7 @@
+{% macro ilustracao(nome, classe='', destaque=false) -%}
+{% set arte = imagem_modalidade(nome) %}
+<span class="modalidade-arte {{ classe }}" role="img" aria-label="{{ arte.nome }}">
+  <i class="fa-solid fa-{{ arte.icone }} arte-fallback" aria-hidden="true" {% if arte.arquivo %}hidden{% endif %}></i>
+  {% if arte.arquivo %}<img src="{{ url_for('static', filename=arte.arquivo) }}" alt="" width="360" height="360" loading="{{ 'eager' if destaque else 'lazy' }}" decoding="async" onerror="this.hidden=true;this.previousElementSibling.hidden=false">{% endif %}
+</span>
+{%- endmacro %}

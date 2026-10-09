@@ -1,4 +1,5 @@
 {% extends "base_dashboard.html" %}
+{% from '_modalidade.html' import ilustracao with context %}
 {% set pagina_ativa = 'agenda' %}
 {% block titulo %}Agenda{% endblock %}
 {% block conteudo %}
@@ -15,13 +16,13 @@
         <div class="lista-atividades">
         {% for treino in treinos if treino.passado == passado %}
             <article class="cartao atividade-linha {{ 'treino--proximo' if treino.proximo }}">
-                <span class="atividade__icone"><i class="fa-solid fa-calendar-days"></i></span>
+                {{ ilustracao(treino.modalidade, 'arte-mini') }}
                 <div class="atividade-linha__info">
-                    <strong>{{ treino.titulo }}</strong>{% if treino.realizado_em %}<span class="selo-realizado">? Realizado</span>{% endif %}
+                    <strong>{{ treino.titulo }}</strong>{% if treino.realizado_em %}<span class="selo-realizado">Realizado</span>{% endif %}
                     <p class="mini__apoio">{{ treino.data_formatada }} às {{ treino.horario_formatado }}{% if treino.proximo %} · Nos próximos 7 dias{% endif %}</p>
                     {% if treino.descricao %}<p class="treino-descricao">{{ treino.descricao }}</p>{% endif %}
                 </div>
-                <div class="atividade-linha__acoes">
+                <div class="atividade-linha__acoes">{% if not treino.realizado_em and treino.data >= data_hoje_iso %}<a class="timer-secundario" href="{{ url_for('dashboard', iniciar=treino.id_agenda) }}#cronometro">Iniciar</a>{% endif %}
                     <a href="{{ url_for('treino_editar', id_treino=treino.id_agenda) }}" class="botao-acao" aria-label="Editar {{ treino.titulo }}"><i class="fa-solid fa-pen"></i></a>
                     <form method="post" action="{{ url_for('treino_excluir', id_treino=treino.id_agenda) }}" onsubmit="return confirm('Excluir este treino?');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

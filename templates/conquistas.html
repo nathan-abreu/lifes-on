@@ -1,14 +1,16 @@
 {% extends "base_dashboard.html" %}
+{% from '_medalha.html' import medalha %}
 {% set pagina_ativa = 'conquistas' %}
 {% block titulo %}Conquistas{% endblock %}
 {% block conteudo %}
 <section class="pagina__cabecalho"><h1>Minhas Conquistas</h1><p>Seu esforço registrado, uma conquista de cada vez.</p></section>
+<form method="post" action="{{ url_for('conquistas_sincronizar') }}" class="secao-acompanhamento"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="timer-secundario" type="submit">Conferir conquistas pendentes</button><p class="mini__apoio">Recupere conquistas após uma falha de conexão. Cada marco só é premiado uma vez.</p></form>
 {% if erro_conquistas %}<div class="aviso" role="alert">Conquistas indisponíveis. {{ erro_conquistas }}</div>{% else %}
 <p>{{ total_conquistas }} de {{ conquistas|length }} desbloqueadas.</p>
 <div class="conquistas-grid">
     {% for conquista in conquistas %}
     <article class="cartao conquista {{ 'conquista--desbloqueada' if conquista.desbloqueada }}">
-        <div class="metrica__icone"><i class="fa-solid {{ 'fa-trophy' if conquista.desbloqueada else 'fa-lock' }}"></i></div>
+        {{ medalha(conquista.simbolo, conquista.raridade, conquista.nome) }}<span class="raridade">{{ conquista.raridade }}</span>
         <h2 class="cartao__titulo">{{ conquista.nome }}</h2>
         <p>{{ conquista.descricao }}</p>
         <p class="mini__apoio">Condição: {{ conquista.condicao }}</p>

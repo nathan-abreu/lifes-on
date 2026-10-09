@@ -1,29 +1,28 @@
 {% extends "base_dashboard.html" %}
-{% block titulo %}Dashboard{% endblock %}
+{% from '_modalidade.html' import ilustracao with context %}
+{% from '_medalha.html' import medalha %}
 {% set pagina_ativa = 'dashboard' %}
+{% block titulo %}Dashboard{% endblock %}
 {% block conteudo %}
-<div class="dashboard-semana7">
-    <section class="saudacao dashboard-saudacao">
-        <div><h1>Olá, {{ nome }}!</h1><p>Hoje é um ótimo dia para treinar.</p></div>
-        <a class="botao-verde dashboard-atalho" href="#cronometro"><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar atividade</a>
-    </section>
-    {% include '_xp.html' %}
-    {% include '_painel_progresso.html' %}
-    {% include '_cronometro.html' %}
-    {% include '_alertas.html' %}
-        <section class="cartao atividades">
-            <div class="atividades__cabecalho"><h2>Atividades recentes</h2><a href="{{ url_for('atividades') }}">Ver tudo</a></div>
-            {% for atividade in atividades_registradas[:5] %}
-            <div class="atividade">
-                <span class="atividade__icone"><i class="fa-solid fa-person-running"></i></span>
-                <div class="atividade__info"><strong>{{ atividade.tipo_exercicio }}</strong><span>{{ atividade.data_relativa }} · {{ atividade.duracao }} min</span></div>
-            </div>
-            {% else %}<p class="mini__apoio">Nenhuma atividade registrada. <a href="{{ url_for('atividade_nova') }}">Registrar atividade</a></p>{% endfor %}
-        </section>
+<div class="dashboard-premium">
+ <section class="saudacao dashboard-saudacao"><div><span class="eyebrow">SEU RITMO. SUA JORNADA.</span><h1>Olá, {{ nome }}.</h1><p>Um movimento de cada vez.</p></div><a class="timer-secundario" href="{{ url_for('atividade_nova') }}">Registrar atividade</a></section>
+ <div class="jornada-resumo">
+  <section class="cartao xp-card" aria-label="Sua progressão"><span class="eyebrow">PRÓXIMA RECOMPENSA</span>{% if xp.disponivel %}<div class="xp-cabecalho"><h2>Nível {{ xp.nivel }}</h2><strong>{{ xp.total }} XP</strong></div><div class="barra" role="progressbar" aria-label="Progresso de nível" aria-valuenow="{{ xp.progresso }}" aria-valuemin="0" aria-valuemax="100"><div style="width:{{ xp.progresso }}%"></div></div><p>Faltam {{ xp.faltam }} XP para o nível {{ xp.nivel + 1 }}.</p>{% else %}<h2>Sua evolução</h2><p>XP indisponível. Tente novamente em instantes.</p>{% endif %}<a href="{{ url_for('pontuacao') }}">Ver pontuação ↗</a></section>
+  <section class="cartao resumo-conquistas"><span class="eyebrow">SUA COLEÇÃO</span><div class="colecao-linha"><div><h2>{{ total_conquistas }} {{ 'conquista' if total_conquistas == 1 else 'conquistas' }}</h2><p>{{ 'Cada passo deixa uma marca.' if total_conquistas else 'Sua primeira medalha espera por você.' }}</p></div><div class="medalhas-recentes">{% for c in (conquistas|selectattr('desbloqueada')|sort(attribute='data_obtencao', reverse=true)|list)[:2] %}{{ medalha(c.simbolo, c.raridade, c.nome) }}{% endfor %}</div></div><a href="{{ url_for('conquistas') }}">Explorar conquistas ↗</a></section>
+  <section class="cartao resumo-sequencia"><span class="eyebrow">CONSTÂNCIA</span><div class="sequencia-linha"><div><h2>{{ resumo.sequencia }} {{ 'dia' if resumo.sequencia == 1 else 'dias' }}</h2><p>Melhor sequência: {{ resumo.melhor_sequencia }} {{ 'dia' if resumo.melhor_sequencia == 1 else 'dias' }}</p></div><svg class="chama" viewBox="0 0 64 80" aria-hidden="true"><path d="M34 3C46 23 16 27 29 43C31 33 43 30 43 19C67 42 60 74 33 77C7 78 0 51 14 33C12 47 19 48 19 42C18 27 33 19 34 3Z" fill="currentColor"/><path d="M33 42C44 55 45 66 33 69C22 66 24 57 33 42Z" fill="#fff2de"/></svg></div><span class="mini__apoio">Descansar também faz parte.</span></section>
+ </div>
+ <section class="proximo-treino">
+  <div class="treino-editorial"><span class="eyebrow">{{ 'SEU PRÓXIMO TREINO' if proximo_treino else 'ESPAÇO PARA UM NOVO COMEÇO' }}</span>
+  {% if not agenda_disponivel %}<h2>Sua agenda volta em instantes.</h2><p>Não foi possível consultar o próximo treino.</p><a class="botao-verde" href="{{ url_for('agenda') }}">Ver agenda</a>
+  {% elif proximo_treino %}<h2>{{ proximo_treino.titulo }}</h2><p>{{ proximo_treino.modalidade or 'Modalidade a confirmar' }} · {{ proximo_treino.data_formatada }} às {{ proximo_treino.horario_formatado }}</p><button type="button" class="botao-verde" data-iniciar-treino="{{ proximo_treino.id_agenda }}"><i class="fa-solid fa-play" aria-hidden="true"></i> Iniciar treino</button><a href="{{ url_for('agenda') }}">Ver agenda</a>
+  {% else %}<h2>Seu próximo passo começa aqui.</h2><p>Escolha um movimento que combine com o seu dia.</p><a class="botao-verde" href="{{ url_for('treino_novo') }}">Agendar treino</a>{% endif %}</div>
+  {{ ilustracao(proximo_treino.modalidade if proximo_treino else 'Outros', 'arte-hero', true) }}
+ </section>
+ <div class="dashboard-inferior">
+  {% include '_grafico_semanal.html' %}
+  <section class="cartao meta-dashboard"><span class="eyebrow">UM OBJETIVO DE CADA VEZ</span><h2>Meta atual</h2>{% if meta_atual %}<h3>{{ meta_atual.descricao }}</h3><p class="mini__apoio">Até {{ meta_atual.prazo_formatado }}</p><div class="barra" role="progressbar" aria-label="Progresso da meta" aria-valuenow="{{ meta_atual.progresso }}" aria-valuemin="0" aria-valuemax="100"><div style="width:{{ meta_atual.progresso }}%"></div></div><strong>{{ meta_atual.progresso }}% concluído</strong><a href="{{ url_for('meta_editar', id_meta=meta_atual.id_meta) }}">Atualizar meu progresso →</a>{% else %}<h3>O que você quer conquistar?</h3><p>Defina um objetivo possível e acompanhe cada avanço.</p><a href="{{ url_for('meta_nova') }}">Criar uma meta →</a>{% endif %}</section>
+ </div>
+ <details class="timer-detalhes"><summary>Cronômetro de treino</summary>{% include '_cronometro.html' %}</details>
 </div>
 {% endblock %}
-
-{% block scripts_extra %}
-{% include '_grafico_scripts.html' %}
-<script src="{{ url_for('static', filename='js/cronometro.js') }}" defer></script>
-{% endblock %}
+{% block scripts_extra %}{% include '_grafico_scripts.html' %}<script src="{{ url_for('static', filename='js/cronometro.js') }}" defer></script>{% endblock %}

@@ -11,7 +11,7 @@
         <label for="timerAtividade">Treino</label>
         <select id="timerAtividade" class="timer-cartao__select">
             <option value="">Selecione um treino agendado</option>
-            {% for treino in treinos_disponiveis %}<option value="{{ treino.id_agenda }}" data-titulo="{{ treino.titulo }}">{{ treino.titulo }} — {{ treino.quando }} às {{ treino.horario_formatado }}</option>{% endfor %}
+            {% for treino in treinos_disponiveis %}<option value="{{ treino.id_agenda }}" data-titulo="{{ treino.titulo }}" data-modalidade="{{ treino.modalidade or '' }}">{{ treino.titulo }} — {{ treino.quando }} às {{ treino.horario_formatado }}</option>{% endfor %}
         </select>
         <button type="button" id="timerBotaoIniciar" class="botao-verde timer-cartao__botao" disabled>Iniciar treino</button>
         {% else %}

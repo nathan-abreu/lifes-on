@@ -8,6 +8,8 @@
     const erro = el('timerErro');
     const salvar = el('timerBotaoSalvar');
     const chave = 'lifes-on-atividade-' + raiz.dataset.usuario;
+    const pendencia = chave + '-pendente';
+    function limparPendencia() {try {sessionStorage.removeItem(pendencia);} catch (_) {}}
     let chaveRegistro = null;
     let acumulado = 0, inicio = null, intervalo = null, segundos = 0, tipo = '', treinoId = null, enviando = false;
 
@@ -42,15 +44,19 @@
         if (enviando) return;
         if (!window.confirm('Cancelar esta atividade sem salvar?')) return;
         pausar(); acumulado = 0; erro.hidden = true;
+        limparPendencia();
         estado('timerFormulario'); selecao.focus();
     }
     function mostrarSucesso(dados) {
+        limparPendencia();
         if (dados.recompensa) {
             window.LifesUI?.som('treino', true);
             setTimeout(() => window.LifesUI?.recompensar(dados.recompensa), 400);
         }
         el('timerMensagem').textContent = 'Atividade concluída! ' + (dados.titulo_treino || dados.tipo_exercicio) + ' • ' + dados.duracao + (dados.duracao === 1 ? ' minuto' : ' minutos');
         if (dados.duplicado) el('timerMensagem').textContent = 'Treino já registrado; nenhum XP adicional.';
+        if (dados.situacao === 'excluida') el('timerMensagem').textContent = 'Esta operação já foi processada e a atividade foi excluída. Nenhum registro ou XP adicional foi criado.';
+        if (dados.situacao === 'agenda_ja_concluida') el('timerMensagem').textContent = 'Este treino já foi concluído. A atividade não está mais disponível; nenhum novo registro foi criado.';
         const lista = el('timerConquistas'); lista.replaceChildren();
         (dados.novas_conquistas || []).forEach(conquista => {
             const item = document.createElement('p');
@@ -58,14 +64,20 @@
             item.textContent = '🏆 Conquista desbloqueada: ' + conquista.nome + ' — ' + conquista.descricao;
             lista.appendChild(item);
         });
+        if(dados.conquistas_atualizadas === false && !dados.duplicado) {
+            const aviso=document.createElement('p');
+            aviso.textContent='Atividade e XP básico salvos. Confira conquistas pendentes na página Conquistas.';
+            lista.appendChild(aviso);
+        }
         estado('timerConcluido'); el('timerConcluido').focus();
     }
     function iniciarTreino() {
         if (!selecao || !selecao.value || el('timerFormulario').hidden) return;
+        raiz.closest('details').open = true;
         treinoId = Number(selecao.value);
         chaveRegistro = crypto.randomUUID();
         tipo = selecao.selectedOptions[0].dataset.titulo; acumulado = 0; erro.hidden = true;
-        el('timerModalidade').value = '';
+        el('timerModalidade').value = selecao.selectedOptions[0].dataset.modalidade || '';
         el('timerTipoAtual').textContent = tipo; continuar(); el('timerBotaoPausar').focus();
     }
     if (selecao) {
@@ -101,16 +113,18 @@
         enviando = true; erro.hidden = true;
         el('timerConfirmacao').querySelectorAll('button').forEach(b => { b.disabled = true; });
         salvar.textContent = 'Salvando…';
+        try {sessionStorage.setItem(pendencia,JSON.stringify({chaveRegistro,treinoId,segundos,tipo,modalidade:el('timerModalidade').value}));} catch (_) {}
         try {
             const resposta = await fetch(raiz.dataset.url, {
                 method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': raiz.dataset.csrf },
                 body: JSON.stringify({ chave_registro: chaveRegistro, id_agenda: treinoId, tipo_exercicio: el('timerModalidade').value, segundos_decorridos: segundos })
             });
-            const dados = await resposta.json();
+            const dados = resposta.headers.get('content-type')?.includes('application/json')
+                ? await resposta.json().catch(() => ({erro: 'O servidor enviou uma resposta inválida. Confira se o treino foi salvo antes de confirmar novamente.'}))
+                : {erro: 'Não foi possível confirmar a resposta. Confira sua sessão e tente novamente.'};
             if (!resposta.ok || !dados.registrado) {
                 // Falhas de servidor podem ocorrer depois do INSERT: conferir antes de reenviar.
-                if (resposta.status >= 500) throw new Error('resultado incerto');
                 el('timerConfirmacao').querySelectorAll('button').forEach(b => { b.disabled = false; });
                 avisar(dados.erro || 'Não foi possível registrar. Atualize a página e confira sua sessão.');
                 return;
@@ -121,19 +135,28 @@
                 const pagina = await fetch(window.location.href, {credentials:'same-origin'});
                 if (!pagina.ok) throw new Error('resumo indisponível');
                 const documento = new DOMParser().parseFromString(await pagina.text(), 'text/html');
-                ['.xp-card','.metricas-grid','.mini-cards','.atividades','#alertas'].forEach(seletor => {
+                ['.jornada-resumo','.proximo-treino','.meta-dashboard','.metricas-grid','.atividades','#alertas'].forEach(seletor => {
                     const atual=document.querySelector(seletor), novo=documento.querySelector(seletor);
                     if(atual && novo) atual.replaceWith(novo);
                 });
                 const serie=documento.getElementById('dadosProgresso');
+                const blocoGrafico=document.querySelector('.grafico');
+                if(blocoGrafico) {
+                    blocoGrafico.querySelectorAll(':scope > .mini__apoio:not(#graficoErro)').forEach(p=>p.remove());
+                    documento.querySelectorAll('.grafico > .mini__apoio:not(#graficoErro)').forEach(p=>blocoGrafico.querySelector('.grafico-container').before(p.cloneNode(true)));
+                    const tabela=blocoGrafico.querySelector('.grafico-tabela'), novaTabela=documento.querySelector('.grafico-tabela');
+                    if(tabela && novaTabela)tabela.replaceWith(novaTabela);
+                    if(serie)document.getElementById('dadosProgresso').textContent=serie.textContent;
+                }
                 if(serie && window.Chart) {
                     const grafico=Chart.getChart('graficoProgresso');
                     if(grafico) {const d=JSON.parse(serie.textContent);grafico.data.labels=d.labels;grafico.data.datasets[0].data=d.minutos;grafico.update();}
                 }
                 const sino=document.querySelector('.sino'), novoSino=documento.querySelector('.sino');
                 if(sino && novoSino) sino.replaceWith(novoSino);
-                const opcao=selecao?.querySelector('option[value="'+treinoId+'"]');
-                if(opcao) opcao.remove();
+                const novaSelecao=documento.getElementById('timerAtividade');
+                if(selecao && novaSelecao)selecao.replaceChildren(...novaSelecao.childNodes);
+                else {const opcao=selecao?.querySelector('option[value="'+treinoId+'"]');if(opcao)opcao.remove();}
                 if(selecao) {selecao.value='';el('timerBotaoIniciar').disabled=true;}
             } catch (_) {
                 avisar('Atividade salva. Não foi possível atualizar o resumo; recarregue a página para consultar os indicadores.');
@@ -145,6 +168,26 @@
             enviando = false; salvar.textContent = 'Confirmar e salvar';
         }
     });
+    try {
+        const salvo=JSON.parse(sessionStorage.getItem(pendencia));
+        if(salvo && typeof salvo.chaveRegistro==='string' && Number.isInteger(salvo.segundos)) {
+            raiz.closest('details').open = true;
+            chaveRegistro=salvo.chaveRegistro;treinoId=salvo.treinoId;segundos=salvo.segundos;tipo=salvo.tipo;
+            acumulado=segundos*1000;
+            el('timerModalidade').value=salvo.modalidade;
+            el('timerResumo').textContent=tipo+' • '+formatar(segundos);
+            estado('timerConfirmacao');
+            erro.textContent='Há uma confirmação pendente. Tente confirmar novamente para conferir se o treino foi salvo.';
+            erro.hidden=false;
+        }
+    } catch (_) {}
+    const iniciarId = new URLSearchParams(window.location.search).get('iniciar');
+    if (iniciarId && selecao) {
+        selecao.value = iniciarId;
+        el('timerBotaoIniciar').disabled = !selecao.value;
+        iniciarTreino();
+        history.replaceState(null, '', window.location.pathname + '#cronometro');
+    }
     try {
         const feedback = sessionStorage.getItem(chave);
         sessionStorage.removeItem(chave);

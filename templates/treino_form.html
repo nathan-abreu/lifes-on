@@ -7,6 +7,7 @@
 <form class="cartao meta-form" method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="campo"><label for="titulo">Título</label><input id="titulo" name="titulo" required maxlength="120" value="{{ treino.titulo if treino else '' }}"></div>
+    <div class="campo"><label for="modalidade">Modalidade (opcional)</label><select id="modalidade" name="modalidade"><option value="">Treino livre</option>{% for tipo in tipos_exercicio %}<option value="{{ tipo }}" {{ 'selected' if treino and treino.modalidade == tipo }}>{{ tipo }}</option>{% endfor %}</select></div>
     <div class="campo"><label for="data">Data</label><input type="date" id="data" name="data" required min="{{ hoje }}" value="{{ treino.data if treino else '' }}"></div>
     <div class="campo"><label for="horario">Horário de Brasília</label><input type="time" id="horario" name="horario" required value="{{ treino.horario[:5] if treino else '' }}"></div>
     <div class="campo"><label for="descricao">Descrição (opcional)</label><textarea id="descricao" name="descricao" rows="4" maxlength="2000">{{ (treino.descricao or '') if treino else '' }}</textarea></div>

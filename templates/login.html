@@ -5,6 +5,7 @@
 {% block formulario %}
 <h2>Entrar</h2>
 <p class="cartao-auth__sub">Bem-vindo de volta!</p>
+{% if erro_login %}<p role="alert">{{ erro_login }}</p>{% endif %}
 
 <form method="POST" action="{{ url_for('login') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -15,6 +16,7 @@
             <input type="email"
                    name="email"
                    id="email"
+                   value="{{ email or '' }}"
                    placeholder="seu@email.com"
                    required
                    autofocus>
