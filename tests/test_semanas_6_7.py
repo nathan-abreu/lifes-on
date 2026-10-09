@@ -4,6 +4,7 @@ import copy
 import json
 import re
 import unittest
+from decimal import Decimal
 from uuid import uuid4
 from datetime import date, datetime, timedelta
 from types import SimpleNamespace
@@ -54,6 +55,22 @@ class BancoTeste:
 
     def table(self, tabela):
         return ConsultaTeste(self, tabela)
+
+    def recalcular_metas(self):
+        # Contrato de leitura para testes HTTP. As regras SQL são testadas no
+        # PostgreSQL real/WASM em sql_evolucao.cjs (não por esta simulação).
+        for meta in self.dados['metas']:
+            if not meta.get('metrica'): continue
+            acumulado = Decimal(0)
+            for a in self.dados['atividades']:
+                dia = data_atividade(a['data_registro'])
+                if a['id_usuario'] != meta['id_usuario'] or not meta['inicio'] <= dia.isoformat() <= meta['prazo']: continue
+                if meta.get('modalidade') and meta['modalidade'] != a['tipo_exercicio']: continue
+                acumulado += Decimal(str(a['duracao'] if meta['metrica']=='minutos' else 1 if meta['metrica']=='sessoes' else a.get('distancia_km') or 0))
+            meta['acumulado'] = float(acumulado)
+            meta['progresso'] = min(100, int(acumulado*100/Decimal(meta['alvo'])))
+            if meta['progresso'] == 100:
+                self.premiar(meta['id_usuario'], 'meta:'+str(meta['id_meta']), 'Meta concluída', 50)
 
 
 class ConsultaTeste:
@@ -114,7 +131,10 @@ class ConsultaTeste:
                                and r['id_usuario']==self.payload['id_usuario']), None)
                 if agenda and agenda.get('realizado_em'):
                     return SimpleNamespace(data=[])
-                self.banco.premiar(self.payload['id_usuario'], chave_evento, 'Atividade concluída', 20)
+                taxa={'Corrida':5,'Caminhada':3,'Ciclismo':2,'Natação':10}.get(self.payload['tipo_exercicio'],0)
+                xp=self.payload['duracao']+int(Decimal(str(self.payload.get('distancia_km') or 0))*taxa)
+                self.payload.update(xp_versao=2,xp_atual=xp,xp_revisao=0)
+                self.banco.premiar(self.payload['id_usuario'], chave_evento, 'Atividade concluída', xp)
                 if agenda: agenda['realizado_em']=AGORA.isoformat()
             chaves = {"usuarios": "id_usuario", "atividades": "id_atividade", "metas": "id_meta", "agenda": "id_agenda"}
             chave = chaves[self.tabela]
@@ -134,6 +154,14 @@ class ConsultaTeste:
                                           'Conquista desbloqueada',30)
         elif self.operacao == "update":
             for linha in selecionadas:
+                if self.tabela=='atividades' and linha.get('xp_versao')==2:
+                    nova={**linha,**self.payload}
+                    taxa={'Corrida':5,'Caminhada':3,'Ciclismo':2,'Natação':10}.get(nova['tipo_exercicio'],0)
+                    xp=nova['duracao']+int(Decimal(str(nova.get('distancia_km') or 0))*taxa)
+                    if xp != linha['xp_atual']:
+                        linha['xp_revisao']+=1
+                        self.banco.premiar(linha['id_usuario'],'ajuste:atividade:'+str(linha.get('chave_registro') or linha['id_atividade'])+':'+str(linha['xp_revisao']),'Ajuste de atividade editada',xp-linha['xp_atual'])
+                    linha['xp_atual']=xp
                 if self.tabela=='metas' and self.payload.get('progresso')==100 and linha['progresso']<100:
                     self.banco.premiar(linha['id_usuario'], 'meta:'+str(linha['id_meta']), 'Meta concluída',50)
                 linha.update(self.payload)
@@ -142,8 +170,11 @@ class ConsultaTeste:
                 if self.tabela == 'atividades':
                     evento = 'atividade:' + str(linha.get('chave_registro') or linha['id_atividade'])
                     if any(r['id_usuario']==linha['id_usuario'] and r['chave_evento']==evento for r in self.banco.dados['recompensas_xp']):
-                        self.banco.premiar(linha['id_usuario'], 'estorno:'+evento, 'Estorno de atividade excluída', -20)
+                        original=next(r['xp'] for r in self.banco.dados['recompensas_xp'] if r['id_usuario']==linha['id_usuario'] and r['chave_evento']==evento)
+                        self.banco.premiar(linha['id_usuario'], 'estorno:'+evento, 'Estorno de atividade excluída', -linha['xp_atual'] if linha.get('xp_versao')==2 else -original)
                 tabela.remove(linha)
+        if self.operacao in ('insert', 'update', 'delete') and self.tabela in ('metas', 'atividades'):
+            self.banco.recalcular_metas()
         for campo, desc in reversed(self.ordens):
             selecionadas = sorted(selecionadas, key=lambda r: r[campo], reverse=desc)
         if self.fatia:
@@ -252,7 +283,8 @@ class CalculosTest(unittest.TestCase):
 class RotasTest(unittest.TestCase):
     def setUp(self):
         self.banco = BancoTeste()
-        self.patches = [patch.object(projeto, "supabase", self.banco),
+        self.patches = [patch.dict("os.environ", {"LIFES_DATA_REGISTRO_TIPO":"timestamptz"}),
+                        patch.object(projeto, "supabase", self.banco),
                         patch.object(projeto, "agora_local", return_value=AGORA),
                         patch.object(projeto, "datetime", DataHoraTeste)]
         for p in self.patches:
@@ -315,7 +347,7 @@ class RotasTest(unittest.TestCase):
         self.assertEqual(self.post("/agenda/editar/1", self.dados_treino()).status_code, 404)
         self.post("/agenda/excluir/1")
         for tipo in ("atividades", "metas"):
-            self.assertEqual(self.client.get(f"/{tipo}/editar/1").status_code, 302)
+            self.assertEqual(self.client.get(f"/{tipo}/editar/1").status_code, 404 if tipo == "metas" else 302)
             self.post(f"/{tipo}/editar/1", {"descricao": "Invadida", "progresso": 0})
             self.post(f"/{tipo}/excluir/1")
         self.assertEqual({k: v for k, v in antes.items() if k != "alertas"},
@@ -452,18 +484,18 @@ class RotasTest(unittest.TestCase):
         resposta = self.client.post("/atividades/concluir_timer", json={
             "chave_registro": str(uuid4()), "tipo_exercicio": "Corrida", "segundos_decorridos": 150, "id_usuario": 2}, headers=headers)
         self.assertEqual(resposta.status_code, 200)
-        self.assertEqual(resposta.json["duracao"], 3)
+        self.assertEqual(resposta.json["duracao"], 2)
         self.assertEqual([c["nome"] for c in resposta.json["novas_conquistas"]], ["Primeiro passo"])
         self.assertEqual(self.banco.dados["atividades"][0]["id_usuario"], 1)
         self.assertEqual(self.banco.dados["metas"][0]["progresso"], 25)
         for caminho in ("/dashboard", "/progresso"):
             html = self.client.get(caminho).get_data(as_text=True)
             dados = json.loads(re.search(r'<script id="dadosProgresso" type="application/json">(.*?)</script>', html, re.S).group(1))
-            self.assertEqual(sum(dados["minutos"]), 3)
+            self.assertEqual(sum(dados["minutos"]), 2)
         segunda = self.client.post("/atividades/concluir_timer", json={
             "chave_registro": str(uuid4()), "tipo_exercicio": "Yoga", "segundos_decorridos": 30}, headers=headers)
-        self.assertEqual(segunda.json["duracao"], 1)
-        self.assertEqual(segunda.json["novas_conquistas"], [])
+        self.assertFalse(segunda.json["registrado"])
+        self.assertEqual(segunda.json["motivo"], "muito_curta")
         self.entrar(2)
         html = self.client.get("/dashboard").get_data(as_text=True)
         self.assertNotIn('Hoje · 3 min', html)
@@ -491,9 +523,9 @@ class RotasTest(unittest.TestCase):
         self.assertFalse(resposta.json["registrado"])
         for payload in ([1], {"tipo_exercicio": "Inválido"}, {"tipo_exercicio": "Corrida", "segundos_decorridos": "abc"}):
             self.assertEqual(self.client.post("/atividades/concluir_timer", json=payload, headers=headers).status_code, 400)
-        self.post("/metas/nova", {"descricao": "Objetivo", "prazo": "2026-09-25"})
+        self.post("/metas/nova", {"metrica":"sessoes", "alvo":"1", "inicio":"2026-09-01", "descricao": "Objetivo", "prazo": "2026-09-25"})
         self.assertEqual(self.client.get("/metas/editar/1").status_code, 200)
-        self.post("/metas/editar/1", {"descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 100})
+        self.post("/metas/editar/1", {"metrica":"sessoes", "alvo":"1", "inicio":"2026-09-01", "descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 100})
         self.assertEqual(self.banco.dados["metas"][0]["progresso"], 100)
         self.assertNotIn("pendente(s)", self.client.get("/alertas").get_data(as_text=True))
         self.post("/atividades/excluir/1")
@@ -609,11 +641,11 @@ class RotasTest(unittest.TestCase):
 
     def test_conquista_persiste_apos_excluir_atividade_ou_reduzir_meta(self):
         self.post("/atividades/nova", {"tipo_exercicio": "Corrida", "duracao": 30, "frequencia": 1})
-        self.post("/metas/nova", {"descricao": "Objetivo", "prazo": "2026-09-25"})
-        self.post("/metas/editar/1", {"descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 100})
+        self.post("/metas/nova", {"metrica":"sessoes", "alvo":"1", "inicio":"2026-09-01", "descricao": "Objetivo", "prazo": "2026-09-25"})
+        self.post("/metas/editar/1", {"metrica":"sessoes", "alvo":"1", "inicio":"2026-09-01", "descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 100})
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 2)
         self.post("/atividades/excluir/1")
-        self.post("/metas/editar/1", {"descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 0})
+        self.post("/metas/editar/1", {"metrica":"sessoes", "alvo":"1", "inicio":"2026-09-01", "descricao": "Objetivo", "prazo": "2026-09-25", "progresso": 0})
         self.client.get("/conquistas")
         self.assertEqual(len(self.banco.dados["usuario_conquista"]), 2)
         self.assertIn("2 conquistas", self.client.get("/dashboard").get_data(as_text=True))

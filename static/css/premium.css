@@ -95,3 +95,8 @@
 
 .jornada-resumo .xp-cabecalho {margin-bottom:6px;}
 .jornada-resumo .barra {margin:8px 0;}
+
+/* Evolução: componentes integrados ao tema aprovado. */
+.avatar-perfil{position:relative;overflow:hidden;flex-shrink:0;text-decoration:none}.avatar-perfil img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.avatar-perfil img[hidden]{display:none}
+.perfil-grade{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}.perfil-grade>*{min-width:0}.perfil-retrato{position:relative;width:112px;height:112px;margin:0 auto 24px}.perfil-retrato .avatar{width:112px;height:112px;font-size:36px}.perfil-retrato>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}.perfil-form input[type=file]{max-width:100%;font-size:13px}.perfil-remover{display:flex;gap:10px;align-items:center;margin:16px 0}.perfil-remover input{width:auto}.perfil-estatisticas dl>div{display:flex;justify-content:space-between;gap:16px;padding:12px 0}.perfil-estatisticas dd{font-weight:700;color:var(--verde,#10b981)}.perfil-saudacao{display:flex;align-items:center;gap:16px}.perfil-saudacao h1{overflow-wrap:anywhere}.perfil-form .campo input,.meta-form .campo input,.meta-form .campo select{width:100%;box-sizing:border-box}.campo[data-distancia][hidden]{display:none}
+@media(max-width:700px){.perfil-grade{grid-template-columns:1fr}.perfil-saudacao{gap:10px}.perfil-form{padding:20px}.meta-form .perfil-grade{gap:0}}

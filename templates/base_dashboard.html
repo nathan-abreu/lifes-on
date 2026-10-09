@@ -32,12 +32,13 @@
             <a href="{{ url_for('conquistas') }}" class="{{ 'ativo' if pagina_ativa == 'conquistas' else '' }}" {% if pagina_ativa == 'conquistas' %}aria-current="page"{% endif %}><i class="fa-solid fa-trophy" aria-hidden="true"></i> Conquistas</a>
             <a href="{{ url_for('dicas') }}" class="{{ 'ativo' if pagina_ativa == 'dicas' else '' }}" {% if pagina_ativa == 'dicas' %}aria-current="page"{% endif %}><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Dicas</a>
             <a href="{{ url_for('alertas') }}" class="{{ 'ativo' if pagina_ativa == 'alertas' else '' }}" {% if pagina_ativa == 'alertas' %}aria-current="page"{% endif %}><i class="fa-solid fa-bell" aria-hidden="true"></i> Alertas</a>
+            <a href="{{ url_for('perfil') }}" class="{{ 'ativo' if pagina_ativa == 'perfil' else '' }}"><i class="fa-solid fa-user" aria-hidden="true"></i> Meu perfil</a>
         </nav>
 
         <div class="sidebar__rodape">
-            <span class="avatar">{{ nome[0]|upper }}</span>
+            {% include '_avatar.html' %}
             <div class="sidebar__usuario">
-                <strong>{{ nome }}</strong>
+                <strong>{{ nome_perfil or nome }}</strong>
                 <span>Sua jornada fitness</span>
             </div>
             <a href="{{ url_for('logout') }}" class="sidebar__sair" title="Sair" aria-label="Sair">
@@ -60,7 +61,7 @@
 
             <div class="topo__acoes"><button type="button" class="audio-toggle" id="audioAlternar" aria-pressed="false" aria-label="Ativar sons"><i class="fa-solid fa-volume-xmark" aria-hidden="true"></i><span>Sons</span></button>
                 <a href="{{ url_for('alertas') }}" class="sino" aria-label="Ver alertas e lembretes"><i class="fa-solid fa-bell"></i>{% if alertas_nao_lidos %}<small>{{ alertas_nao_lidos }}</small>{% endif %}</a>
-                <span class="avatar">{{ nome[0]|upper }}</span>
+                {% include '_avatar.html' %}
             </div>
         </header>
 

@@ -1,0 +1,4 @@
+<a class="avatar avatar-perfil" href="{{ url_for('perfil') }}" aria-label="Meu perfil">
+ <span aria-hidden="true">{{ (nome_perfil or nome or 'L')[0]|upper }}</span>
+ {% if perfil_foto_disponivel %}<img src="{{ url_for('perfil_foto') }}" alt="" loading="lazy" onerror="this.hidden=true">{% endif %}
+</a>

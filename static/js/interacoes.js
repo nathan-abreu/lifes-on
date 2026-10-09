@@ -67,12 +67,13 @@
   setTimeout(()=>{toast.hidden=true;setTimeout(proxima,200);},3000);
  }
  function recompensar(dados) {
-  if(!dados || !Number.isInteger(dados.xp_recebido) || dados.xp_recebido<=0)return;
+  if(!dados || !Number.isInteger(dados.xp_recebido) || dados.xp_recebido===0)return;
   const indicador=document.querySelector('.xp-card');
   if(indicador) {indicador.classList.add('xp-pulso');setTimeout(()=>indicador.classList.remove('xp-pulso'),700);}
-  fila.push({texto:'✦ +'+dados.xp_recebido+' XP · '+dados.xp+' XP acumulados',som:'xp'});
+  fila.push({texto:(dados.xp_recebido>0?'✦ +':'Ajuste: ')+dados.xp_recebido+' XP · '+dados.xp+' XP acumulados',som:dados.xp_recebido>0?'xp':'clique'});
   (dados.conquistas || []).forEach(c=>fila.push({texto:'🏆 '+c.nome+' — '+c.descricao,som:'conquista'}));
   if(dados.subiu_nivel)fila.push({texto:'✦ Você chegou ao nível '+dados.nivel+'!',som:'nivel'});
+  if(dados.desceu_nivel)fila.push({texto:'Sua pontuação foi recalculada. Nível atual: '+dados.nivel+'.',som:'clique'});
   if(!ativa)proxima();
  }
  const ativo=document.getElementById('audioAtivo'), volume=document.getElementById('audioVolume'), valor=document.getElementById('audioValor');

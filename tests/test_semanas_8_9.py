@@ -21,7 +21,7 @@ class IntegracaoTest(unittest.TestCase):
                                                 chave_registro=chave or str(uuid4())))
 
     def test_niveis_limites(self):
-        for xp,nivel,progresso in [(0,1,0),(99,1,99),(100,2,0),(250,3,50)]:
+        for xp,nivel,progresso in [(0,1,0),(99,1,99),(100,2,0),(250,3,0)]:
             self.assertEqual(calcular_nivel(xp)['nivel'],nivel)
             self.assertEqual(calcular_nivel(xp)['progresso'],progresso)
         for valor in (None,'abc',2):
@@ -31,7 +31,7 @@ class IntegracaoTest(unittest.TestCase):
         chave=str(uuid4())
         self.registrar(chave);self.registrar(chave)
         self.assertEqual(len(self.banco.dados['atividades']),1)
-        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),50)
+        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),60)
         self.post('/atividades/editar/1',dict(tipo_exercicio='Yoga',duracao=40,frequencia=2))
         self.post('/atividades/excluir/1')
         self.registrar(chave)
@@ -42,7 +42,7 @@ class IntegracaoTest(unittest.TestCase):
         self.registrar()
         html=self.client.get('/atividades').get_data(as_text=True)
         dados=json.loads(re.search(r'<script id="feedbackRecompensa" type="application/json">(.*?)</script>',html,re.S).group(1))
-        self.assertEqual(dados['xp_recebido'],50)
+        self.assertEqual(dados['xp_recebido'],60)
         self.assertEqual(dados['conquistas'][0]['nome'],'Primeiro passo')
         html=self.client.get('/atividades').get_data(as_text=True)
         self.assertIn('type="application/json">null</script>',html)
@@ -60,7 +60,7 @@ class IntegracaoTest(unittest.TestCase):
         payload=dict(chave_registro=str(uuid4()),id_agenda=1,tipo_exercicio='Yoga',segundos_decorridos=90)
         headers={'X-CSRF-Token':'token-teste'}
         resposta=self.client.post('/atividades/concluir_timer',json=payload,headers=headers)
-        self.assertEqual(resposta.json['recompensa']['xp_recebido'],50)
+        self.assertEqual(resposta.json['recompensa']['xp_recebido'],31)
         payload['chave_registro']=str(uuid4())
         resposta=self.client.post('/atividades/concluir_timer',json=payload,headers=headers)
         self.assertTrue(resposta.json['duplicado'])
@@ -70,10 +70,10 @@ class IntegracaoTest(unittest.TestCase):
 
     def test_meta_transicao_repetida_e_nivel(self):
         self.registrar()
-        self.post('/metas/nova',dict(descricao='Minha meta',prazo='2026-09-25'))
+        self.post('/metas/nova',dict(metrica='sessoes',alvo='1',inicio='2026-09-01',descricao='Minha meta',prazo='2026-09-25'))
         for percentual in (100,0,100):
-            self.post('/metas/editar/1',dict(descricao='Minha meta',prazo='2026-09-25',progresso=percentual))
-        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),130)
+            self.post('/metas/editar/1',dict(metrica='sessoes',alvo='1',inicio='2026-09-01',descricao='Minha meta',prazo='2026-09-25',progresso=percentual))
+        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),140)
         self.assertIn('Nível 2',self.client.get('/dashboard').get_data(as_text=True))
 
     def test_migracao_ausente_nao_perde_registro_sem_xp(self):
@@ -129,10 +129,10 @@ class IntegracaoTest(unittest.TestCase):
                                  headers={'X-CSRF-Token':'token-teste'})
         self.assertTrue(resposta.json['registrado'])
         self.assertFalse(resposta.json['conquistas_atualizadas'])
-        self.assertEqual(resposta.json['recompensa']['xp_recebido'],20)
+        self.assertEqual(resposta.json['recompensa']['xp_recebido'],1)
         self.banco.ausentes.clear()
         self.post('/conquistas/sincronizar')
-        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),50)
+        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']),31)
 
     def test_formulario_falha_preserva_uuid_e_valores(self):
         self.banco.ausentes.add('recompensas_xp')

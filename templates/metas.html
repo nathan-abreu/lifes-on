@@ -34,6 +34,7 @@
                             <div style="width: {{ meta.progresso }}%;"></div>
                         </div>
 
+                        {% if meta.metrica %}<p class="mini__apoio">{{ meta.acumulado|quantidade }} / {{ meta.alvo|quantidade }} {{ {'minutos':'min', 'km':'km', 'sessoes':'sessões'}[meta.metrica] }} · {{ meta.modalidade or 'Todas compatíveis' }}</p>{% else %}<p class="mini__apoio">Meta legada · converta para progresso automático ao editar.</p>{% endif %}
                         <p class="meta__incentivo">{{ meta.mensagem_incentivo }}</p>
 
                         <div class="atividade-linha__acoes meta-cartao__acoes">

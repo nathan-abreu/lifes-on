@@ -60,7 +60,7 @@ class AuditoriaXPTest(TestCase):
         self.assertEqual(resposta.json['duracao'], original['duracao'])
         self.assertTrue(resposta.json['duplicado'])
         self.assertEqual(len(self.banco.dados['atividades']), 1)
-        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']), 50)
+        self.assertEqual(sum(r['xp'] for r in self.banco.dados['recompensas_xp']), 31)
 
     def test_insert_vazio_sem_evidencia_nao_inventa_sucesso(self):
         executar = base.ConsultaTeste.execute

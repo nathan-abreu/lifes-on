@@ -38,8 +38,9 @@
             <option value="">Selecione a modalidade</option>
             {% for tipo in tipos_exercicio %}<option value="{{ tipo }}">{{ tipo }}</option>{% endfor %}
         </select>
+        <div class="campo" data-distancia hidden><label for="timerDistancia">Distância (km, opcional)</label><input id="timerDistancia" inputmode="decimal" placeholder="Ex.: 3,5"></div>
         <p class="mini__apoio">Confirme a modalidade: o título do treino na Agenda é livre.</p>
-        <p class="mini__apoio">A duração é registrada em minutos inteiros. Mínimo de 30 segundos.</p>
+        <p class="mini__apoio">A duração é registrada em minutos inteiros. Mínimo de 60 segundos, sem arredondar para cima.</p>
         <div class="timer-acoes">
             <button type="button" id="timerBotaoSalvar" class="botao-verde timer-cartao__botao">Confirmar e salvar</button>
             <button type="button" id="timerBotaoVoltar" class="timer-secundario">Continuar atividade</button>

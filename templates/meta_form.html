@@ -1,58 +1,16 @@
-{% extends "base_dashboard.html" %}
-
+{% extends 'base_dashboard.html' %}
 {% set pagina_ativa = 'metas' %}
-
-{% block titulo %}{{ 'Editar Meta' if modo == 'editar' else 'Nova Meta' }}{% endblock %}
-
+{% block titulo %}{{ 'Editar meta' if modo == 'editar' else 'Nova meta' }}{% endblock %}
 {% block conteudo %}
-        <section class="pagina__cabecalho">
-            <h1>{{ 'Editar Meta' if modo == 'editar' else 'Nova Meta' }}</h1>
-            <p>{{ 'Ajuste sua meta e atualize seu progresso' if modo == 'editar' else 'Defina um novo objetivo para acompanhar' }}</p>
-        </section>
-
-        <form class="cartao meta-form" method="post"
-              action="{{ url_for('meta_editar', id_meta=meta.id_meta) if modo == 'editar' else url_for('meta_nova') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-            <h2 class="cartao__titulo">Detalhes da meta</h2>
-
-            <div class="campo">
-                <label for="descricao">Objetivo</label>
-                <input type="text" id="descricao" name="descricao" placeholder="Ex: Correr 5km sem parar" required
-                       value="{{ meta.descricao if meta else '' }}">
-            </div>
-
-            <div class="campo">
-                <label for="prazo">Prazo</label>
-                <input type="date" id="prazo" name="prazo" required
-                       value="{{ meta.prazo[:10] if meta else '' }}">
-            </div>
-
-            {% if modo == 'editar' %}
-                <div class="campo">
-                    <label for="progresso">Progresso atual</label>
-                    <div class="progresso-slider">
-                        <input type="range" id="progresso" name="progresso" min="0" max="100" step="1"
-                               value="{{ meta.progresso }}">
-                        <span class="progresso-slider__valor" id="progressoValor">{{ meta.progresso }}%</span>
-                    </div>
-                </div>
-            {% endif %}
-
-            <button type="submit" class="botao-verde">Salvar meta</button>
-        </form>
-{% endblock %}
-
-{% block scripts_extra %}
-{% if modo == 'editar' %}
-<script>
-    (function () {
-        var slider = document.getElementById('progresso');
-        var valor = document.getElementById('progressoValor');
-        slider.addEventListener('input', function () {
-            valor.textContent = slider.value + '%';
-        });
-    })();
-</script>
-{% endif %}
-{% endblock %}
+<section class="pagina__cabecalho"><h1>{{ 'Editar meta' if modo == 'editar' else 'Nova meta' }}</h1><p>Seu progresso acompanha as atividades realizadas.</p></section>
+<form class="cartao meta-form" method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+{% if meta and not meta.metrica %}<p class="mini__apoio">Meta legada: o progresso histórico está preservado. Ao salvar com um critério abaixo, você a converte para cálculo automático. Uma recompensa já recebida não será repetida.</p>{% endif %}
+<div class="campo"><label for="descricao">Objetivo</label><input id="descricao" name="descricao" maxlength="200" required value="{{ meta.descricao if meta else '' }}"></div>
+<div class="campo"><label for="metrica">O que acompanhar</label><select id="metrica" name="metrica" required>{% for valor,rotulo in [('minutos','Minutos'),('km','Quilômetros'),('sessoes','Sessões')] %}<option value="{{ valor }}" {{ 'selected' if meta and meta.metrica == valor }}>{{ rotulo }}</option>{% endfor %}</select></div>
+<div class="campo"><label for="modalidadeMeta">Modalidade</label><select id="modalidadeMeta" name="modalidade"><option value="">Todas as modalidades compatíveis</option>{% for tipo in tipos_exercicio %}<option value="{{ tipo }}" {{ 'selected' if meta and meta.modalidade == tipo }}>{{ tipo }}</option>{% endfor %}</select></div>
+<div class="campo"><label for="alvo">Quantidade desejada</label><input id="alvo" name="alvo" inputmode="decimal" required value="{{ meta.alvo if meta and meta.alvo else '' }}" placeholder="Ex.: 10,5"></div>
+<div class="perfil-grade"><div class="campo"><label for="inicio">Início</label><input type="date" id="inicio" name="inicio" required value="{{ meta.inicio if meta and meta.inicio else data_hoje_iso }}"></div><div class="campo"><label for="prazo">Até</label><input type="date" id="prazo" name="prazo" required value="{{ meta.prazo if meta else '' }}"></div></div>
+<p class="mini__apoio">O período inclui as duas datas. Cada atividade conta uma vez. Distância não informada não soma quilômetros. Edições e exclusões recalculam o progresso.</p><button class="botao-verde" type="submit">Salvar meta</button>
+</form>{% endblock %}
+{% block scripts_extra %}<script src="{{ url_for('static', filename='js/distancia.js') }}" defer></script>{% endblock %}

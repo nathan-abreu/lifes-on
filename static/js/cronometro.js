@@ -71,6 +71,12 @@
         }
         estado('timerConcluido'); el('timerConcluido').focus();
     }
+    function atualizarDistancia() {
+        const campo=el('timerDistancia');campo.disabled=!['Corrida','Caminhada','Ciclismo','Natação'].includes(el('timerModalidade').value);
+        campo.closest('[data-distancia]').hidden=campo.disabled;if(campo.disabled)campo.value='';
+    }
+    el('timerModalidade').addEventListener('change',atualizarDistancia);
+    atualizarDistancia();
     function iniciarTreino() {
         if (!selecao || !selecao.value || el('timerFormulario').hidden) return;
         raiz.closest('details').open = true;
@@ -78,7 +84,7 @@
         chaveRegistro = crypto.randomUUID();
         tipo = selecao.selectedOptions[0].dataset.titulo; acumulado = 0; erro.hidden = true;
         el('timerModalidade').value = selecao.selectedOptions[0].dataset.modalidade || '';
-        el('timerTipoAtual').textContent = tipo; continuar(); el('timerBotaoPausar').focus();
+        el('timerDistancia').value='';atualizarDistancia();el('timerTipoAtual').textContent = tipo; continuar(); el('timerBotaoPausar').focus();
     }
     if (selecao) {
         selecao.addEventListener('change', () => { el('timerBotaoIniciar').disabled = !selecao.value; });
@@ -98,10 +104,10 @@
     el('timerBotaoPausar').addEventListener('click', () => { inicio === null ? continuar() : pausar(); });
     el('timerBotaoConcluir').addEventListener('click', () => {
         pausar(); segundos = Math.floor(acumulado / 1000);
-        if (segundos < 30) { avisar('Atividade muito curta: mínimo 30 segundos. Continue ou cancele.'); return; }
+        if (segundos < 60) { avisar('Atividade muito curta: mínimo 60 segundos. Continue ou cancele.'); return; }
         if (segundos > 86400) { avisar('A sessão deve ter no máximo 24 horas. Cancele e registre a duração pela página de atividades.'); return; }
         erro.hidden = true; salvar.disabled = false;
-        el('timerResumo').textContent = tipo + ' • ' + formatar(segundos) + ' • ' + Math.max(1, Math.floor((segundos + 30) / 60)) + ' min';
+        el('timerResumo').textContent = tipo + ' • ' + formatar(segundos) + ' • ' + Math.floor(segundos / 60) + ' min';
         estado('timerConfirmacao'); el('timerConfirmacao').focus();
     });
     el('timerBotaoVoltar').addEventListener('click', () => { erro.hidden = true; continuar(); });
@@ -113,12 +119,12 @@
         enviando = true; erro.hidden = true;
         el('timerConfirmacao').querySelectorAll('button').forEach(b => { b.disabled = true; });
         salvar.textContent = 'Salvando…';
-        try {sessionStorage.setItem(pendencia,JSON.stringify({chaveRegistro,treinoId,segundos,tipo,modalidade:el('timerModalidade').value}));} catch (_) {}
+        try {sessionStorage.setItem(pendencia,JSON.stringify({chaveRegistro,treinoId,segundos,tipo,modalidade:el('timerModalidade').value,distancia:el('timerDistancia').value}));} catch (_) {}
         try {
             const resposta = await fetch(raiz.dataset.url, {
                 method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': raiz.dataset.csrf },
-                body: JSON.stringify({ chave_registro: chaveRegistro, id_agenda: treinoId, tipo_exercicio: el('timerModalidade').value, segundos_decorridos: segundos })
+                body: JSON.stringify({ chave_registro: chaveRegistro, id_agenda: treinoId, tipo_exercicio: el('timerModalidade').value, segundos_decorridos: segundos, distancia_km: el('timerDistancia').disabled ? null : el('timerDistancia').value })
             });
             const dados = resposta.headers.get('content-type')?.includes('application/json')
                 ? await resposta.json().catch(() => ({erro: 'O servidor enviou uma resposta inválida. Confira se o treino foi salvo antes de confirmar novamente.'}))
@@ -174,7 +180,7 @@
             raiz.closest('details').open = true;
             chaveRegistro=salvo.chaveRegistro;treinoId=salvo.treinoId;segundos=salvo.segundos;tipo=salvo.tipo;
             acumulado=segundos*1000;
-            el('timerModalidade').value=salvo.modalidade;
+            el('timerModalidade').value=salvo.modalidade;el('timerDistancia').value=salvo.distancia || '';atualizarDistancia();
             el('timerResumo').textContent=tipo+' • '+formatar(segundos);
             estado('timerConfirmacao');
             erro.textContent='Há uma confirmação pendente. Tente confirmar novamente para conferir se o treino foi salvo.';

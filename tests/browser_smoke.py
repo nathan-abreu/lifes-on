@@ -63,6 +63,7 @@ def executar():
 
                 page.goto(base + "/metas/nova")
                 page.locator("#descricao").fill("Meta do navegador")
+                page.locator("#alvo").fill("100")
                 page.locator("#prazo").fill("2026-09-25")
                 page.get_by_role("button", name="Salvar meta").click()
                 page.wait_for_url(base + "/metas")
@@ -111,14 +112,14 @@ def executar():
                 page.goto(base + "/dashboard")
                 expect(page.locator(".dashboard-premium")).to_contain_text("Meta do navegador")
                 expect(page.locator(".dashboard-premium")).to_contain_text("Treino editado")
-                expect(page.locator('.xp-card')).to_contain_text('50 XP')
+                expect(page.locator('.xp-card')).to_contain_text('60 XP')
                 page.clock.install()
                 page.locator(".timer-detalhes").evaluate("e=>e.open=true")
                 page.locator("#timerAtividade").select_option("1")
                 page.locator("#timerBotaoIniciar").click()
                 expect(page.locator("#timerRodando")).to_be_visible()
                 page.locator("#timerBotaoConcluir").click()
-                expect(page.locator("#timerErro")).to_contain_text("mínimo 30 segundos")
+                expect(page.locator("#timerErro")).to_contain_text("mínimo 60 segundos")
                 assert len(banco.dados["atividades"]) == 1
                 page.locator("#timerBotaoPausar").click()  # continuar após sessão curta
                 page.clock.run_for(31000)
@@ -191,7 +192,7 @@ def executar():
                 page.locator("#timerBotaoSalvar").click()
                 expect(page.locator("#timerConquistas")).to_contain_text("Primeiro passo")
                 assert banco.dados["atividades"][-1]["id_usuario"] == 2
-                assert banco.dados["atividades"][-1]["duracao"] == 2
+                assert banco.dados["atividades"][-1]["duracao"] == 1
                 assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
                 page.clock.run_for(500)
                 page.evaluate("window.scrollTo(0, 0)")

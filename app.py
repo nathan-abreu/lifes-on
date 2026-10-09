@@ -1,5 +1,9 @@
 import os
 import secrets
+from io import BytesIO
+from storage3.exceptions import StorageApiError
+from evolucao import validar_distancia, validar_meta, quantidade, data_para_banco
+from perfil import validar_nome, preparar_foto, caminho_proprio
 from uuid import uuid4
 from recompensas import validar_chave, resumir_recompensas
 from datetime import date, datetime, time, timezone
@@ -8,6 +12,8 @@ from functools import wraps
 from dotenv import load_dotenv
 from flask import (
     Flask,
+    g,
+    send_file,
     abort,
     flash,
     jsonify,
@@ -38,8 +44,9 @@ SUPABASE_KEY = chave_do_servidor()
 supabase = criar_cliente(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
+app.add_template_filter(quantidade, 'quantidade')
 app.secret_key = os.getenv("FLASK_SECRET_KEY")
-app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax")
+app.config.update(SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", MAX_CONTENT_LENGTH=6*1024*1024)
 
 
 @app.context_processor
@@ -51,6 +58,15 @@ def contexto_formularios():
                 "data_hoje_iso": agora_local().date().isoformat(),
                 "imagem_modalidade": imagem_modalidade, "tipos_exercicio": TIPOS_EXERCICIO}
     if "id_usuario" in session:
+        try:
+            usuario = usuario_perfil(obrigatorio=False)
+            contexto['perfil_foto_disponivel'] = bool(usuario and caminho_proprio(usuario.get('foto_path'), session['id_usuario']))
+            if usuario:
+                session['nome'] = usuario['nome']
+                contexto['nome_perfil'] = usuario['nome']
+        except (APIError, HTTPError) as erro:
+            contexto['perfil_foto_disponivel'] = False
+            mensagem_erro_banco(erro)
         try:
             contexto["alertas_nao_lidos"] = sum(a.get("status") != "lido" for a in listar_do_usuario("alertas", ["id_alerta"]))
         except (APIError, HTTPError):
@@ -242,22 +258,27 @@ def exigir_xp():
     return consultar_xp(estrito=True)
 
 
-def preparar_recompensa(antes, novas=None, evento=None):
+def preparar_recompensa(antes, novas=None, evento=None, transacao=None):
     depois = consultar_xp()
     if not antes.get("disponivel") or not depois.get("disponivel"):
         return None
     ids = {r["id_recompensa"] for r in antes["historico"]}
     novas_linhas = [r for r in depois["historico"] if r["id_recompensa"] not in ids]
     principal = next((r for r in novas_linhas if r["chave_evento"] == evento), None)
+    if transacao is None and principal:
+        transacao = principal.get('transacao')
     chaves_conquistas = {"conquista:" + str(c["id_conquista"]) for c in (novas or [])}
     recebidas = [r for r in novas_linhas if r["chave_evento"] == evento
                  or r["chave_evento"] in chaves_conquistas
+                 or (transacao is not None and r.get('transacao') == transacao
+                     and (r['chave_evento'].startswith('meta:') or r['chave_evento']=='sequencia:primeiros-7'))
                  or (principal and r["chave_evento"] == "sequencia:primeiros-7"
                      and r["criado_em"] == principal["criado_em"])]
     if not recebidas:
         return None
     return {"xp_recebido": sum(r["xp"] for r in recebidas), "xp": depois["total"],
             "nivel": depois["nivel"], "subiu_nivel": depois["nivel"] > antes["nivel"],
+            "desceu_nivel": depois["nivel"] < antes["nivel"],
             "conquistas": novas or []}
 
 
@@ -287,7 +308,7 @@ def resultado_repetido(anterior):
             "novas_conquistas": [], "conquistas_atualizadas": None}
 
 
-def registrar_atividade(tipo, duracao, frequencia, chave, id_agenda=None, realizada_em=None):
+def registrar_atividade(tipo, duracao, frequencia, chave, id_agenda=None, realizada_em=None, distancia=None):
     if tipo not in TIPOS_EXERCICIO or not 1 <= duracao <= 1440 or frequencia not in (None, 1):
         raise ValueError("Informe modalidade e duração de 1 a 1440 minutos.")
     chave = validar_chave(chave)
@@ -295,8 +316,10 @@ def registrar_atividade(tipo, duracao, frequencia, chave, id_agenda=None, realiz
     anterior = recuperar_registro(chave, id_agenda, antes["historico"])
     if anterior:
         return resultado_repetido(anterior)
-    payload = {"tipo_exercicio": tipo, "duracao": duracao, "frequencia": frequencia,
-               "data_registro": realizada_em or datetime.now(timezone.utc).isoformat(),
+    distancia = validar_distancia(tipo, duracao, distancia)
+    payload = {"distancia_km": distancia, "tipo_exercicio": tipo, "duracao": duracao, "frequencia": frequencia,
+               "data_registro": data_para_banco(realizada_em or datetime.now(timezone.utc).isoformat(),
+                                                os.getenv('LIFES_DATA_REGISTRO_TIPO', 'date')),
                "id_usuario": session["id_usuario"], "chave_registro": chave}
     if id_agenda is not None:
         payload["id_agenda"] = id_agenda
@@ -330,6 +353,102 @@ def login_obrigatorio(f):
 @login_obrigatorio
 def pontuacao():
     return render_template("pontuacao.html", nome=session["nome"], xp=consultar_xp())
+
+
+def usuario_perfil(obrigatorio=True):
+    if hasattr(g, 'usuario_perfil'):
+        return g.usuario_perfil
+    registros = (supabase.table('usuarios').select('id_usuario,nome,foto_path,perfil_versao')
+                 .eq('id_usuario', session['id_usuario']).execute().data or [])
+    if not registros:
+        if obrigatorio: abort(404, description='Perfil não encontrado.')
+        return None
+    g.usuario_perfil = registros[0]
+    return g.usuario_perfil
+
+
+def bucket_perfil():
+    bucket = os.getenv('SUPABASE_AVATAR_BUCKET', 'lifes-perfis')
+    configuracao = supabase.storage.get_bucket(bucket)
+    publico = configuracao.get('public') if isinstance(configuracao, dict) else configuracao.public
+    if publico is not False:
+        raise ValueError('O bucket de fotos precisa ser privado. Contate o administrador.')
+    return supabase.storage.from_(bucket)
+
+
+@app.route('/perfil', methods=['GET', 'POST'])
+@login_obrigatorio
+def perfil():
+    usuario = usuario_perfil()
+    status = 200
+    if request.method == 'POST':
+        try:
+            nome = validar_nome(request.form.get('nome', ''))
+            versao = int(request.form.get('perfil_versao', '-1'))
+            if versao != usuario.get('perfil_versao', 0):
+                abort(409, description='O perfil mudou em outra aba. Recarregue antes de salvar.')
+            anterior = usuario.get('foto_path')
+            caminho = anterior
+            arquivo = request.files.get('foto')
+            remover = request.form.get('remover_foto') == '1'
+            if remover and arquivo and arquivo.filename:
+                raise ValueError('Escolha entre substituir a foto e removê-la.')
+            storage = None
+            if arquivo and arquivo.filename:
+                conteudo = preparar_foto(arquivo)
+                storage = bucket_perfil()
+                caminho = f"{session['id_usuario']}/{uuid4().hex}.png"
+                storage.upload(caminho, conteudo, file_options={'content-type': 'image/png', 'upsert': 'false'})
+            elif remover:
+                storage = bucket_perfil() if anterior else None
+                caminho = None
+            resposta = (supabase.table('usuarios').update(dict(nome=nome, foto_path=caminho, perfil_versao=versao+1))
+                        .eq('id_usuario', session['id_usuario']).eq('perfil_versao', versao).execute())
+            if not resposta.data:
+                # Só removemos a nova imagem quando sabemos que o UPDATE não gravou.
+                if storage and caminho and caminho != anterior:
+                    storage.remove([caminho])
+                abort(409, description='O perfil mudou em outra aba. Recarregue antes de salvar.')
+            session['nome'] = nome
+            flash('Perfil atualizado.')
+            if anterior != caminho and caminho_proprio(anterior, session['id_usuario']):
+                try:
+                    (storage or bucket_perfil()).remove([anterior])
+                except (StorageApiError, HTTPError, ValueError):
+                    app.logger.warning('Perfil: limpeza de foto anterior pendente')
+                    flash('A foto atual foi salva, mas a limpeza do arquivo anterior ficou pendente.')
+            return redirect(url_for('perfil'))
+        except ValueError as erro:
+            flash(str(erro) if 'invalid literal' not in str(erro) else 'Recarregue o perfil antes de salvar.')
+            status = 400
+        except (APIError, HTTPError, StorageApiError):
+            # Falha de rede após UPDATE pode significar commit. Não apagar o upload
+            # sem reconciliação: ele pode ser a foto persistida. Nunca logar URL/chave.
+            app.logger.warning('Perfil: gravação não confirmada; conferir perfil antes de repetir')
+            flash('Não foi possível confirmar o perfil. Recarregue para conferir antes de tentar novamente.')
+            status = 503
+    registros = listar_do_usuario('atividades', ['id_atividade'])
+    metas = listar_do_usuario('metas', ['id_meta'])
+    obtidas = listar_do_usuario('usuario_conquista', ['id_conquista'])
+    return render_template('perfil.html', nome=session['nome'], usuario=usuario,
+                           xp=consultar_xp(), resumo=calcular_progresso(registros, metas, agora_local().date()),
+                           total_conquistas=len(obtidas)), status
+
+
+@app.route('/perfil/foto')
+@login_obrigatorio
+def perfil_foto():
+    usuario = usuario_perfil()
+    caminho = usuario.get('foto_path')
+    if not caminho_proprio(caminho, session['id_usuario']): abort(404)
+    try:
+        conteudo = bucket_perfil().download(caminho)
+    except (StorageApiError, HTTPError, ValueError):
+        abort(503, description='Foto temporariamente indisponível.')
+    resposta = send_file(BytesIO(conteudo), mimetype='image/png', max_age=0)
+    resposta.headers['Cache-Control'] = 'private, no-store'
+    resposta.headers['X-Content-Type-Options'] = 'nosniff'
+    return resposta
 
 
 @app.route("/configuracoes")
@@ -639,7 +758,7 @@ def atividade_nova():
             realizada_em = validar_data_realizada(request.form.get("data_realizacao", agora_local().date().isoformat()))
             resultado = registrar_atividade(
                 request.form.get("tipo_exercicio"), int(request.form.get("duracao", "")), None,
-                request.form.get("chave_registro"), realizada_em=realizada_em)
+                request.form.get("chave_registro"), realizada_em=realizada_em, distancia=request.form.get("distancia_km"))
         except ValueError as erro:
             flash(str(erro) if "invalid literal" not in str(erro) else "Informe uma duração válida.")
             return render_template("atividade_form.html", nome=session["nome"], modo="nova",
@@ -690,19 +809,32 @@ def atividade_editar(id_atividade):
             duracao = int(request.form.get("duracao", ""))
             if tipo not in TIPOS_EXERCICIO or not 1 <= duracao <= 1440:
                 raise ValueError("Informe modalidade válida e duração de 1 a 1440 minutos.")
+            distancia = validar_distancia(tipo, duracao, request.form.get("distancia_km"))
             realizada_em = validar_data_realizada(request.form.get("data_realizacao", data_atividade(atividade["data_registro"]).isoformat()))
+            realizada_em = data_para_banco(realizada_em, os.getenv('LIFES_DATA_REGISTRO_TIPO', 'date'))
         except ValueError as erro:
             flash(str(erro))
             return render_template("atividade_form.html", nome=session["nome"], modo="editar",
                                    atividade={**atividade, **request.form}), 400
-        antes = exigir_xp()
-        supabase.table("atividades").update({
-            "tipo_exercicio": tipo, "duracao": duracao, "data_registro": realizada_em,
-        }).eq("id_atividade", id_atividade).eq("id_usuario", session["id_usuario"]).execute()
+        try:
+            antes = exigir_xp()
+            atualizadas = supabase.table("atividades").update({
+                "tipo_exercicio": tipo, "duracao": duracao,
+                "data_registro": realizada_em,
+                "distancia_km": distancia,
+            }).eq("id_atividade", id_atividade).eq("id_usuario", session["id_usuario"]).execute()
+        except (APIError, HTTPError) as erro:
+            flash("Edição não confirmada. " + mensagem_erro_banco(erro))
+            return render_template("atividade_form.html", nome=session["nome"], modo="editar",
+                                   atividade={**atividade, **request.form}), 503
 
+        if not atualizadas.data:
+            abort(409, description="A atividade foi alterada ou excluída. Atualize a página.")
         novas = []
         verificar_conquistas_apos_salvar(novas)
-        feedback = preparar_recompensa(antes, novas)
+        ajustada = atualizadas.data[0]
+        evento = 'ajuste:atividade:' + str(ajustada.get('chave_registro') or id_atividade) + ':' + str(ajustada.get('xp_revisao', 0))
+        feedback = preparar_recompensa(antes, novas, evento, ajustada.get('xp_transacao'))
         if feedback:
             session["feedback_recompensa"] = feedback
         flash("Atividade atualizada com sucesso!")
@@ -720,11 +852,16 @@ def atividade_editar(id_atividade):
 @app.route("/atividades/excluir/<int:id_atividade>", methods=["POST"])
 @login_obrigatorio
 def atividade_excluir(id_atividade):
-    exigir_xp()
+    antes = exigir_xp()
     resposta = supabase.table("atividades").delete().eq("id_atividade", id_atividade).eq(
         "id_usuario", session["id_usuario"]
     ).execute()
 
+    if resposta.data:
+        removida = resposta.data[0]
+        evento = 'estorno:atividade:' + str(removida.get('chave_registro') or id_atividade)
+        feedback = preparar_recompensa(antes, evento=evento)
+        if feedback: session['feedback_recompensa'] = feedback
     flash("Atividade excluída." if resposta.data else "A atividade não foi encontrada na sua conta ou já foi excluída.")
     return redirect(url_for("atividades"))
 
@@ -744,7 +881,7 @@ def atividade_concluir_timer():
     if type(segundos_decorridos) is not int or not 0 <= segundos_decorridos <= 86400:
         return jsonify({"erro": "Duração inválida."}), 400
 
-    if segundos_decorridos < 30:
+    if segundos_decorridos < 60:
         return jsonify({"registrado": False, "motivo": "muito_curta"})
 
     # O título é livre na Agenda; a modalidade é confirmada pelo usuário.
@@ -769,17 +906,17 @@ def atividade_concluir_timer():
             if not treinos:
                 return jsonify(erro="Treino não encontrado na sua agenda. Confira se ele foi excluído."), 404
             titulo_treino = treinos[0]["titulo"]
-        duracao = max(1, (segundos_decorridos + 30) // 60)
+        duracao = segundos_decorridos // 60
         try:
             resultado = registrar_atividade(tipo_exercicio, duracao, None,
-                                             dados.get("chave_registro"), id_agenda)
+                                             dados.get("chave_registro"), id_agenda, distancia=dados.get("distancia_km"))
         except ValueError as erro:
             return jsonify(erro=str(erro)), 400
     original = resultado["atividade"] or {}
     return jsonify({"registrado": True, "duplicado": not resultado["novo"],
                     "situacao": resultado["situacao"], "id_atividade": original.get("id_atividade"),
                     "tipo_exercicio": original.get("tipo_exercicio"), "duracao": original.get("duracao"),
-                    "data_registro": original.get("data_registro"),
+                    "data_registro": original.get("data_registro"), "distancia_km": original.get("distancia_km"),
                     "titulo_treino": titulo_treino, "recompensa": resultado["recompensa"],
                     "conquistas_atualizadas": resultado["conquistas_atualizadas"],
                     "novas_conquistas": resultado["novas_conquistas"]})
@@ -807,14 +944,7 @@ def mensagem_incentivo(progresso):
 @app.route("/metas")
 @login_obrigatorio
 def metas():
-    resposta = (
-        supabase.table("metas")
-        .select("*")
-        .eq("id_usuario", session["id_usuario"])
-        .order("prazo")
-        .execute()
-    )
-    lista_metas = resposta.data
+    lista_metas = listar_do_usuario('metas', ['prazo', 'id_meta'])
     for meta in lista_metas:
         meta["progresso"] = int(meta["progresso"])
         meta["prazo_formatado"] = formatar_data_br(meta["prazo"])
@@ -823,91 +953,47 @@ def metas():
     return render_template("metas.html", nome=session["nome"], metas=lista_metas)
 
 
+def salvar_meta(meta=None):
+    modo = "editar" if meta else "nova"
+    if request.method == "POST":
+        try:
+            payload = validar_meta(request.form)
+            antes = exigir_xp()
+            if meta:
+                resposta = (supabase.table("metas").update(payload).eq("id_usuario", session["id_usuario"])
+                            .eq("id_meta", meta["id_meta"]).execute())
+            else:
+                resposta = supabase.table("metas").insert({**payload, "id_usuario": session["id_usuario"]}).execute()
+            if not resposta.data:
+                abort(409, description="A meta não foi confirmada. Atualize a página antes de tentar novamente.")
+            novas = []
+            verificar_conquistas_apos_salvar(novas)
+            feedback = preparar_recompensa(antes, novas, "meta:" + str(resposta.data[0]["id_meta"]))
+            if feedback: session["feedback_recompensa"] = feedback
+            flash("Meta salva. O progresso é calculado pelas atividades do período.")
+            return redirect(url_for("metas"))
+        except ValueError as erro:
+            flash(str(erro)); status = 400
+        except (APIError, HTTPError) as erro:
+            flash("Não foi possível confirmar a meta. " + mensagem_erro_banco(erro)); status = 503
+        return render_template("meta_form.html", nome=session["nome"], modo=modo,
+                               meta={**(meta or {}), **request.form}), status
+    return render_template("meta_form.html", nome=session["nome"], modo=modo, meta=meta)
+
+
 @app.route("/metas/nova", methods=["GET", "POST"])
 @login_obrigatorio
 def meta_nova():
-    if request.method == "POST":
-        descricao = request.form.get("descricao", "").strip()
-        prazo = request.form.get("prazo")
-
-        if not descricao:
-            flash("A meta precisa de um objetivo definido.")
-            return redirect(url_for("meta_nova"))
-
-        try:
-            datetime.strptime(prazo, "%Y-%m-%d")
-        except (TypeError, ValueError):
-            flash("Informe um prazo válido.")
-            return redirect(url_for("meta_nova"))
-
-        supabase.table("metas").insert({
-            "descricao": descricao,
-            "prazo": prazo,
-            "progresso": 0,
-            "id_usuario": session["id_usuario"],
-        }).execute()
-
-        flash("Meta criada com sucesso!")
-        return redirect(url_for("metas"))
-
-    return render_template("meta_form.html", nome=session["nome"], modo="nova", meta=None)
+    return salvar_meta()
 
 
 @app.route("/metas/editar/<int:id_meta>", methods=["GET", "POST"])
 @login_obrigatorio
 def meta_editar(id_meta):
-    resposta = (
-        supabase.table("metas")
-        .select("*")
-        .eq("id_meta", id_meta)
-        .eq("id_usuario", session["id_usuario"])
-        .execute()
-    )
-    if not resposta.data:
-        flash("Meta não encontrada.")
-        return redirect(url_for("metas"))
-
-    meta = resposta.data[0]
-    meta["progresso"] = int(meta["progresso"])
-
-    if request.method == "POST":
-        descricao = request.form.get("descricao", "").strip()
-        prazo = request.form.get("prazo")
-        progresso = request.form.get("progresso")
-
-        if not descricao:
-            flash("A meta precisa de um objetivo definido.")
-            return redirect(url_for("meta_editar", id_meta=id_meta))
-
-        try:
-            datetime.strptime(prazo, "%Y-%m-%d")
-        except (TypeError, ValueError):
-            flash("Informe um prazo válido.")
-            return redirect(url_for("meta_editar", id_meta=id_meta))
-
-        try:
-            progresso = int(progresso)
-        except (TypeError, ValueError):
-            flash("O progresso deve ser um número.")
-            return redirect(url_for("meta_editar", id_meta=id_meta))
-
-        progresso = max(0, min(100, progresso))
-
-        antes_xp = exigir_xp()
-        supabase.table("metas").update({
-            "descricao": descricao,
-            "prazo": prazo,
-            "progresso": progresso,
-        }).eq("id_meta", id_meta).eq("id_usuario", session["id_usuario"]).execute()
-
-        novas = []
-        verificar_conquistas_apos_salvar(novas)
-        feedback = preparar_recompensa(antes_xp, novas, "meta:" + str(id_meta))
-        if feedback: session["feedback_recompensa"] = feedback
-        flash("Meta atualizada com sucesso!")
-        return redirect(url_for("metas"))
-
-    return render_template("meta_form.html", nome=session["nome"], modo="editar", meta=meta)
+    registros = (supabase.table("metas").select("*").eq("id_meta", id_meta)
+                 .eq("id_usuario", session["id_usuario"]).execute().data or [])
+    if not registros: abort(404, description="Meta não encontrada na sua conta.")
+    return salvar_meta(registros[0])
 
 
 @app.route("/metas/excluir/<int:id_meta>", methods=["POST"])

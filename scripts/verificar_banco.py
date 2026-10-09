@@ -38,6 +38,11 @@ def verificar():
         "recompensas_xp": "id_recompensa,id_usuario,chave_evento,motivo,xp,criado_em",
     }
     falhou = False
+    if '--evolucao' in sys.argv:
+        consultas['usuarios'] += ',foto_path,perfil_versao'
+        consultas['atividades'] += ',distancia_km,xp_versao,xp_atual,xp_revisao,xp_transacao'
+        consultas['metas'] += ',metrica,modalidade,alvo,inicio,acumulado'
+        consultas['recompensas_xp'] += ',transacao'
     for tabela, campos in consultas.items():
         try:
             cliente.table(tabela).select(campos).limit(0).execute()
@@ -45,7 +50,8 @@ def verificar():
         except APIError as erro:
             falhou = True
             if erro.code in ("42703", "PGRST204", "42P01", "PGRST205"):
-                print(f"{tabela}: estrutura incompleta ({erro.code}); confira schema.sql e a migração antes de aplicar SQL.")
+                etapa = 'evolucao_perfil_metas_xp_niveis.sql' if '--evolucao' in sys.argv else 'schema.sql e as migrações anteriores'
+                print(f"{tabela}: estrutura incompleta ({erro.code}); confira {etapa} antes de aplicar SQL.")
                 if '--detalhado' in sys.argv and erro.code in ('42703', 'PGRST204'):
                     for campo in campos.split(','):
                         try:
@@ -59,6 +65,26 @@ def verificar():
         except HTTPError:
             falhou = True
             print(f"{tabela}: falha de conexão; confira URL, DNS e disponibilidade do projeto.")
+    if '--evolucao' in sys.argv:
+        try:
+            resposta = cliente.postgrest.session.get(url.rstrip('/') + '/rest/v1/', headers={
+                'apikey': chave, 'Authorization': 'Bearer ' + chave, 'Accept': 'application/openapi+json'})
+            resposta.raise_for_status()
+            formato = resposta.json().get('definitions', {}).get('atividades', {}).get('properties', {}).get('data_registro', {}).get('format')
+            esperado = {'date':'date', 'timestamp without time zone':'timestamp',
+                        'timestamp with time zone':'timestamptz'}.get(formato)
+            configurado = os.getenv('LIFES_DATA_REGISTRO_TIPO', 'date')
+            if esperado is None:
+                falhou = True
+                print('Tipo da data não confirmado pelo OpenAPI; conferir diagnóstico SQL.')
+            elif configurado != esperado:
+                falhou = True
+                print(f'Configuração necessária: LIFES_DATA_REGISTRO_TIPO={esperado}. Nenhuma configuração foi alterada.')
+            else:
+                print(f'Tipo de data confirmado: {esperado}; configuração compatível.')
+        except (HTTPError, ValueError):
+            falhou = True
+            print('Não foi possível conferir metadados de data; usar diagnóstico SQL. Nenhum registro foi consultado.')
     print("Este diagnóstico não valida INSERT, UPDATE, DELETE, policies ou persistência.")
     return int(falhou)
 

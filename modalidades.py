@@ -3,6 +3,7 @@ from pathlib import Path
 
 MODALIDADES = {
     'Corrida': ('corrida', 'person-running'),
+    'Caminhada': ('caminhada', 'person-walking'),
     'Musculação': ('musculacao', 'dumbbell'),
     'Ciclismo': ('ciclismo', 'bicycle'),
     'Natação': ('natacao', 'person-swimming'),

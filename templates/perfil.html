@@ -1,0 +1,20 @@
+{% extends 'base_dashboard.html' %}
+{% set pagina_ativa = 'perfil' %}
+{% block titulo %}Meu perfil{% endblock %}
+{% block conteudo %}
+<section class="pagina__cabecalho"><h1>Meu perfil</h1><p>Sua identidade. Sua evolução.</p></section>
+<div class="perfil-grade">
+ <form class="cartao perfil-form" method="post" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="perfil_versao" value="{{ usuario.perfil_versao or 0 }}">
+  <div class="perfil-retrato">{% include '_avatar.html' %}<img id="fotoPreview" alt="Prévia da nova foto" hidden></div>
+  <div class="campo"><label for="nomePerfil">Nome de exibição</label><input id="nomePerfil" name="nome" maxlength="80" required value="{{ usuario.nome }}" autocomplete="nickname"></div>
+  <div class="campo"><label for="fotoPerfil">Nova foto</label><input id="fotoPerfil" type="file" name="foto" accept="image/jpeg,image/png,image/webp"><p class="mini__apoio">JPEG, PNG ou WebP estático. Até 5 MB e 16 milhões de pixels.</p></div>
+  {% if usuario.foto_path %}<label class="perfil-remover"><input type="checkbox" name="remover_foto" value="1"> Remover foto atual</label>{% endif %}
+  <p class="mini__apoio" id="fotoAviso" role="status"></p>
+  <button class="botao-verde" type="submit">Salvar perfil</button>
+ </form>
+ <div>{% include '_xp.html' %}<section class="cartao perfil-estatisticas"><h2>Minha jornada</h2><dl><div><dt>Atividades</dt><dd>{{ resumo.total_atividades }}</dd></div><div><dt>Metas concluídas</dt><dd>{{ resumo.metas_concluidas }}</dd></div><div><dt>Conquistas</dt><dd>{{ total_conquistas }}</dd></div></dl></section></div>
+</div>
+{% endblock %}
+{% block scripts_extra %}<script src="{{ url_for('static', filename='js/perfil.js') }}" defer></script>{% endblock %}

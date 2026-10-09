@@ -28,7 +28,7 @@ def executar():
                 base=f'http://127.0.0.1:{servidor.server_port}'
                 page.goto(base+'/login');page.locator('#email').fill('teste@example.test');page.locator('#senha').fill('teste');page.get_by_role('button',name='Entrar',exact=True).click()
                 page.wait_for_url(base+'/dashboard')
-                assert [s.strip() for s in page.locator('.sidebar__nav a').all_text_contents()] == ['Dashboard','Agenda','Progresso','Metas','Registrar Atividade','Pontuação','Conquistas','Dicas','Alertas']
+                assert [s.strip() for s in page.locator('.sidebar__nav a').all_text_contents()] == ['Dashboard','Agenda','Progresso','Metas','Registrar Atividade','Pontuação','Conquistas','Dicas','Alertas','Meu perfil']
                 page.locator('#audioAlternar').click();expect(page.locator('#audioAlternar')).to_have_attribute('aria-pressed','true')
                 page.reload();expect(page.locator('#audioAlternar')).to_have_attribute('aria-pressed','true')
                 page.locator('#audioAlternar').click()
@@ -62,9 +62,9 @@ def executar():
                 page.goto(base+'/dashboard');expect(page.locator('.arte-hero .arte-fallback')).to_be_visible()
                 page.unroute('**/corrida.webp')
                 page.set_viewport_size(dict(width=1366,height=900));page.goto(base+'/agenda')
-                page.get_by_role('link',name='Iniciar',exact=True).click()
+                page.clock.install();page.get_by_role('link',name='Iniciar',exact=True).click()
                 expect(page.locator('#timerRodando')).to_be_visible()
-                page.clock.install();page.clock.run_for(60000);page.locator('#timerBotaoConcluir').click()
+                page.clock.run_for(61000);page.locator('#timerBotaoConcluir').click()
                 expect(page.locator('#timerModalidade')).to_have_value('Corrida')
                 page.route('**/atividades/concluir_timer', lambda route: route.fulfill(
                     status=503, content_type='application/json', body='{invalido'), times=1)

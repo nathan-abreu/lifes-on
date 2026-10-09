@@ -102,7 +102,7 @@ class FinalizacaoTest(TestCase):
         self.post('/atividades/excluir/1')
         self.post('/atividades/nova', dados)
         self.assertEqual(self.banco.dados['atividades'], [])
-        self.assertEqual([r['xp'] for r in self.banco.dados['recompensas_xp']], [20,30,-20])
+        self.assertEqual([r['xp'] for r in self.banco.dados['recompensas_xp']], [30,30,-30])
 
     def test_catalogo_duplicado_nao_repete_conquista_obtida(self):
         self.banco.dados['atividades'] = [atividade()]
@@ -119,7 +119,7 @@ class FinalizacaoTest(TestCase):
         self.banco.ausentes.add('recompensas_xp')
         self.assertEqual(self.post('/atividades/excluir/1').status_code, 503)
         self.assertEqual(self.post('/atividades/editar/1',dict(tipo_exercicio='Yoga',duracao=50)).status_code,503)
-        self.assertEqual(self.post('/metas/editar/1',dict(descricao='Meta',prazo='2026-10-01',progresso=100)).status_code,503)
+        self.assertEqual(self.post('/metas/editar/1',dict(metrica='sessoes',alvo='1',inicio='2026-09-01',descricao='Meta',prazo='2026-10-01',progresso=100)).status_code,503)
         self.assertEqual(self.post('/conquistas/sincronizar').status_code,503)
         self.assertEqual(self.banco.dados['atividades'][0]['duracao'], 30)
         self.assertEqual(self.banco.dados['metas'][0]['progresso'], 0)

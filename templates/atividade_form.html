@@ -11,17 +11,18 @@
   <h2 class="cartao__titulo">Seu treino</h2>
   <div class="campo"><label for="tipo_exercicio">Modalidade</label><select id="tipo_exercicio" name="tipo_exercicio" required><option value="">Selecione uma modalidade</option>{% for tipo in tipos_exercicio %}<option value="{{ tipo }}" {{ 'selected' if atividade and atividade.tipo_exercicio == tipo }}>{{ tipo }}</option>{% endfor %}</select></div>
   <div class="campo"><label for="duracao">Duração (minutos)</label><input type="number" id="duracao" name="duracao" min="1" max="1440" step="1" required value="{{ atividade.duracao if atividade else '' }}"></div>
+  <div class="campo" data-distancia hidden><label for="distancia_km">Distância (km, opcional)</label><input id="distancia_km" name="distancia_km" inputmode="decimal" placeholder="Ex.: 3,5" value="{{ atividade.distancia_km if atividade and atividade.distancia_km else '' }}"><p class="mini__apoio">Até 3 casas decimais. Informe a distância real; duração e velocidade serão conferidas.</p></div>
   <div class="campo"><label for="data_realizacao">Data da realização</label><input type="date" id="data_realizacao" name="data_realizacao" required max="{{ data_hoje_iso }}" value="{{ atividade.data_realizacao if atividade and atividade.data_realizacao else data_hoje_iso }}"></div>
   <p class="mini__apoio">Cada registro conta como uma sessão. Registre apenas o que você já realizou.</p>
   {% if atividade and atividade.frequencia %}<p class="mini__apoio">A frequência declarada no registro antigo será preservada como histórico; ela não multiplica sessões.</p>{% endif %}
   <button type="submit" class="botao-verde">Salvar atividade</button>
  </form>
- <aside class="cartao modalidades-selecao"><h2 class="cartao__titulo">Encontre seu movimento</h2><div class="modalidades-grade">{% for tipo in tipos_exercicio %}<button type="button" class="exercicio-atalho" data-tipo="{{ tipo }}" aria-pressed="{{ 'true' if atividade and atividade.tipo_exercicio == tipo else 'false' }}">{{ ilustracao(tipo) }}<span>{{ tipo }}</span></button>{% endfor %}</div><p class="mini__apoio">{{ 'Editar preserva os 20 XP da sessão. Novos marcos podem desbloquear conquistas.' if modo == 'editar' else '20 XP por sessão confirmada. Conquistas podem trazer novas recompensas.' }}</p></aside>
+ <aside class="cartao modalidades-selecao"><h2 class="cartao__titulo">Encontre seu movimento</h2><div class="modalidades-grade">{% for tipo in tipos_exercicio %}<button type="button" class="exercicio-atalho" data-tipo="{{ tipo }}" aria-pressed="{{ 'true' if atividade and atividade.tipo_exercicio == tipo else 'false' }}">{{ ilustracao(tipo) }}<span>{{ tipo }}</span></button>{% endfor %}</div><p class="mini__apoio">Novas sessões: 1 XP por minuto completo e bônus por distância. Edições ajustam apenas a diferença; sessões legadas preservam sua pontuação.</p></aside>
 </div>
 {% endblock %}
 {% block scripts_extra %}<script>
 const modalidade = document.getElementById('tipo_exercicio');
 function selecionarModalidade() {document.querySelectorAll('[data-tipo]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tipo === modalidade.value));}
-document.querySelectorAll('[data-tipo]').forEach(b => b.addEventListener('click', () => {modalidade.value=b.dataset.tipo;selecionarModalidade();}));
+document.querySelectorAll('[data-tipo]').forEach(b => b.addEventListener('click', () => {modalidade.value=b.dataset.tipo;selecionarModalidade();modalidade.dispatchEvent(new Event('change'));}));
 modalidade.addEventListener('change', selecionarModalidade);
-</script>{% endblock %}
+</script><script src="{{ url_for('static', filename='js/distancia.js') }}" defer></script>{% endblock %}

@@ -26,7 +26,7 @@
                             <strong>{{ atividade.tipo_exercicio }}</strong>
                             <div class="atividade-linha__meta">
                                 <span><i class="fa-solid fa-clock"></i> {{ atividade.duracao }} min</span>
-                                {% if atividade.frequencia %}<span class="legado">Frequência declarada no registro antigo: {{ atividade.frequencia }}x/semana</span>{% endif %}
+                                {% if atividade.distancia_km %}<span>{{ atividade.distancia_km|quantidade }} km</span>{% endif %}{% if atividade.frequencia %}<span class="legado">Frequência declarada no registro antigo: {{ atividade.frequencia }}x/semana</span>{% endif %}
                                 <span><i class="fa-solid fa-calendar-days"></i> {{ atividade.data_formatada }}</span>
                             </div>
                         </div>

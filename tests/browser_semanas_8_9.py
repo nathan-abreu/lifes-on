@@ -42,12 +42,11 @@ def executar():
                 page.locator('#audioAtivo').uncheck();antes=page.evaluate('window.osciladores');page.locator('#audioTestar').click();assert page.evaluate('window.osciladores')==antes
                 page.locator('#audioAtivo').check()
                 page.goto(base+'/atividades/nova');page.locator('#tipo_exercicio').select_option('Corrida');page.locator('#duracao').fill('30');page.locator("#data_realizacao").fill("2026-09-24");page.get_by_role('button',name='Salvar atividade').click()
-                expect(page.locator('#recompensaToast')).to_contain_text('+50 XP')
+                expect(page.locator('#recompensaToast')).to_contain_text('+60 XP')
                 page.reload();expect(page.locator('#recompensaToast')).to_be_hidden()
-                page.goto(base+'/metas/nova');page.locator('#descricao').fill('Meta concluída');page.locator('#prazo').fill('2026-09-25');page.get_by_role('button',name='Salvar meta').click()
-                page.goto(base+'/metas/editar/1');page.locator('#progresso').fill('100');page.get_by_role('button',name='Salvar meta').click()
+                page.goto(base+'/metas/nova');page.locator('#descricao').fill('Meta concluída');page.locator('#metrica').select_option('sessoes');page.locator('#alvo').fill('1');page.locator('#prazo').fill('2026-09-25');page.get_by_role('button',name='Salvar meta').click()
                 expect(page.locator('#recompensaToast')).to_contain_text('+80 XP')
-                page.goto(base+'/dashboard');expect(page.locator('.xp-card')).to_contain_text('Nível 2');expect(page.locator('.xp-card')).to_contain_text('130 XP')
+                page.goto(base+'/dashboard');expect(page.locator('.xp-card')).to_contain_text('Nível 2');expect(page.locator('.xp-card')).to_contain_text('140 XP')
                 for titulo in ('Resposta perdida','Treino com som'):
                     page.goto(base+'/agenda/novo');page.locator('#titulo').fill(titulo);page.locator('#data').fill('2026-09-25');page.locator('#horario').fill('18:30');page.get_by_role('button',name='Salvar treino').click()
                 page.goto(base+'/dashboard');page.clock.install()
@@ -61,12 +60,12 @@ def executar():
                 page.locator('#timerBotaoSalvar').click();expect(page.locator('#timerErro')).to_contain_text('Conexão interrompida')
                 assert len(banco.dados['atividades'])==2
                 page.locator('#timerBotaoSalvar').click();expect(page.locator('#timerMensagem')).to_contain_text('já registrado')
-                page.wait_for_function("document.querySelector('.xp-card').textContent.includes('150 XP')")
+                page.wait_for_function("document.querySelector('.xp-card').textContent.includes('141 XP')")
                 assert len(banco.dados['atividades'])==2
                 page.locator('#timerBotaoNovo').click();concluir(2)
                 page.locator('#timerBotaoSalvar').evaluate('b=>{b.click();b.click()}')
-                expect(page.locator('#recompensaToast')).to_contain_text('+20 XP')
-                page.wait_for_function("document.querySelector('.xp-card').textContent.includes('170 XP')")
+                expect(page.locator('#recompensaToast')).to_contain_text('+1 XP')
+                page.wait_for_function("document.querySelector('.xp-card').textContent.includes('142 XP')")
                 assert len(banco.dados['atividades'])==3
                 assert page.evaluate('window.osciladores')>0
                 page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(pasta/'dashboard-dados.png'),full_page=True)
